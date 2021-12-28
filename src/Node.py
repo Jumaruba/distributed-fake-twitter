@@ -48,7 +48,7 @@ class Node:
         loop.run_until_complete(self.server.bootstrap([self.b_node]))
         return loop
 
-    def create_bootstrap_node(self):
+    def create_bootstrap_node(self):  
         return self.create_node()
 
     def create_node(self):

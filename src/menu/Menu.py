@@ -48,6 +48,8 @@ class Menu:
                 if option < min_value or option > max_value:
                     print(f"Your input should be in the range [{min_value}, {max_value}]")
                 else:
+                    # If option = 1 ask for username
                     return option 
             except ValueError: 
                 print(f"Your input should be an integer.")
+

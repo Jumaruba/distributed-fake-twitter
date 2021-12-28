@@ -4,3 +4,5 @@ src/__pycache__/
 src/connection/__pycache__/
 
 src/database/__pycache__/
+
+src/menu/__pycache__/
