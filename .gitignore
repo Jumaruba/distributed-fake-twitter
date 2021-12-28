@@ -1,6 +1,2 @@
-sdle_venv/*
-src/__pycache__/
-
-src/connection/__pycache__/
-
-src/database/__pycache__/
+sdle_venv
+**/__pycache__
