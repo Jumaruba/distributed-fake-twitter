@@ -4,7 +4,7 @@ import asyncio
 
 
 class Node: 
-    def __init__(self, port, b_ip, b_port = None):
+    def __init__(self, port, b_ip = None, b_port = None):
         self.set_logger()
         
         self.server = Server()
@@ -15,7 +15,6 @@ class Node:
         if b_port is not None:
             self.b_node = (b_ip, b_port)
             self.connect_to_bootstrap_node()
-
         # Create bootstrap node
         else:
             self.create_bootstrap_node()
@@ -28,31 +27,16 @@ class Node:
         log.addHandler(handler)
         # log.setLevel(logging.DEBUG)
 
-    def create_bootstrap_node(self):  
+    def create_node(self):  
         loop = asyncio.get_event_loop()
         # loop.set_debug(True)
-
         loop.run_until_complete(self.server.listen(self.node_port))
+        return loop
 
-        try: 
-            loop.run_forever()
-        except:
-            pass 
-        finally: 
-            self.server.stop()
-            self.server.close() 
+    def create_bootstrap_node(self):
+        return self.create_node()
 
     def connect_to_bootstrap_node(self): 
-        loop = asyncio.get_event_loop()
-        # loop.set_debug(True)
-
-        loop.run_until_complete(self.server.listen(self.node_port))
+        loop = self.create_node()
         loop.run_until_complete(self.server.bootstrap([self.b_node]))
-
-        try:
-            loop.run_forever()
-        except KeyboardInterrupt:
-            pass 
-        finally:
-            self.server.stop() 
-            loop.close()
+        return loop
