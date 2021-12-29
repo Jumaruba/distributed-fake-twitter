@@ -42,9 +42,9 @@ class Peer(Node):
     # -------------------------------------------------------------------------
 
     def start_listening(self):
-        self.listener = Listener(self.ip, self.port, self)
-        self.listener.daemon = True
-        self.listener.start()
+        listener = Listener(self.ip, self.port, self)
+        listener.daemon = True
+        listener.start()
 
     async def set_user_hash_value(self):
         # Set's a value for the key self.username in the network.

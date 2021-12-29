@@ -27,12 +27,14 @@ class Controller:
     def run_in_loop(self, function):
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
 
+    # TEMP
     def create_post(self):
         message_body = input("What\'s happening? ")
         message = Message.post(self.peer.new_message_id, self.peer.username, message_body)
         # TODO send to all the followers.
         self.peer.last_message_id += 1
 
+    # TEMP
     def follow(self):
         message = Message.follow(self.peer.username)
         self.peer.send_message("127.0.0.1", 3000, message)
