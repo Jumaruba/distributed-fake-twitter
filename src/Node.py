@@ -14,10 +14,11 @@ class Node:
         self.server = Server()
         self.ip = ip
         self.port = port
-        #$self.listener = Listener()
-        # NOTE When a function reaches an io operation, it will switches between the functions called with this loop. 
-        # The program has only one event loop. 
+
+        # NOTE When a function reaches an io operation, it will switches between the functions called with this loop.
+        # The program has only one event loop.
         self.loop = asyncio.get_event_loop()
+
         if b_port is not None:
             self.b_node = (b_ip, b_port)
             self.connect_to_bootstrap_node()
@@ -45,7 +46,7 @@ class Node:
         self.loop.run_until_complete(self.server.listen(self.port))
         self.loop.run_until_complete(self.server.bootstrap([self.b_node]))
 
-    def create_bootstrap_node(self):   
+    def create_bootstrap_node(self):
         self.loop.run_until_complete(self.server.listen(self.port))
 
     # --------------------------------------------------------------------------
@@ -55,3 +56,8 @@ class Node:
     def send_message(self, destiny_ip, detiny_port, message):
         sender = Sender(destiny_ip, detiny_port)
         sender.send(message.encode())
+
+    def start_listening(self):
+        self.listener = Listener(self.ip, self.port)
+        self.listener.daemon = True
+        self.listener.start()

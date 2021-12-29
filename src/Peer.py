@@ -6,6 +6,7 @@ from .database import Database
 class Peer(Node):
     def __init__(self, ip, port, b_ip=None, b_port=None):
         super().__init__(ip, port, b_ip, b_port)
+        
 
 
     async def register(self, username):

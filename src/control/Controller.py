@@ -1,9 +1,10 @@
+from src.Peer import Peer
 from .Menu import Menu
 import asyncio
 
 
 class Controller:
-    def __init__(self, peer) -> None:
+    def __init__(self, peer: Peer) -> None:
         self.peer = peer
 
     def handle(self, title, options):
@@ -12,9 +13,9 @@ class Controller:
 
     def run(self):
         options = {
-            "Show timeLine": Controller.example,
-            "Show followers": Controller.example,
-            "Follow a user": Controller.example,
+            "Show timeline": Controller.undefined,
+            "Show followers": Controller.undefined,
+            "Follow a user": Controller.undefined,
             "Exit": exit
         }
         self.handle("Main Menu", options)
@@ -23,11 +24,11 @@ class Controller:
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
 
     @staticmethod
-    def example():
-        print("Ignoring...")
+    def undefined():
+        print("Handling not implemented...")
 
     # -------------------------------------------------------------------------
-    # START MENU
+    # Start menu
     # -------------------------------------------------------------------------
 
     def start(self):
@@ -40,11 +41,13 @@ class Controller:
         future = self.handle("Welcome", options)
 
         # Check result
-        status = future.result()
-        if not status[0]:
-            print("[ ERROR ]", status[1])
-        else:
-            print("[ SUCCESS ]", status[1])
+        status, message = future.result()
+        if not status:
+            print("[ ERROR ]", message)
+            exit()
+
+        print("[ SUCCESS ]", message)
+        self.peer.start_listening()
 
     def register(self):
         username = input("Type your username: ")

@@ -1,28 +1,38 @@
-import socket  
-
+import asyncio
+from threading import Thread
 BUFFER = 1024
-class Listener:
-    def __init__(self, ip, port): 
+
+
+class Listener(Thread):
+    def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        self.bind()
-    
-    def bind(self):
-        socket_address = (self.ip, self.port)
-        self.socket.bind(socket_address)
+    # -------------------------------------------------------------------------
+    # Request handlings
+    # -------------------------------------------------------------------------
 
-    def listen(self):
-        try:
-            self.socket.listen()
-            while True:
-                user_socket, user_address  = self.socket.accept()
-                print("Received :: " + user_socket.recv(BUFFER).decode("utf-8"))
-                # TODO: a follower must receive info from the user it subscribes? 
-        except:
-            print("Error while listening")
-            
-    def stop(self):
-        self.socket.close()
-        
+    @staticmethod
+    async def handle_request(reader, writer):
+        while True:
+            data = (await reader.readline()).strip()
+            if not data:
+                break
+            print(data)
+        writer.close()
+
+    # -------------------------------------------------------------------------
+    # Running listener functions
+    # -------------------------------------------------------------------------
+
+    async def start(self):
+        self.server = await asyncio.start_server(
+            Listener.handle_request,
+            self.ip,
+            self.port
+        )
+        await self.server.serve_forever()
+
+    def run(self):
+        listener_loop = asyncio.new_event_loop()
+        listener_loop.run_until_complete(self.start())

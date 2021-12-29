@@ -3,7 +3,7 @@ from asyncio.tasks import ensure_future
 from threading import Thread
 import sys
 
-from .control import Menu, Controller
+from .control import Controller
 from .Peer import Peer
 from .database import Database
 
