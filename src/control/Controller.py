@@ -1,9 +1,10 @@
-from src.Peer import Peer
-from .Menu import Menu
 import asyncio
 import json
+import time
 
-
+from ..connection import Message
+from ..Peer import Peer
+from .Menu import Menu
 class Controller:
     def __init__(self, peer: Peer) -> None:
         self.peer = peer
@@ -25,11 +26,7 @@ class Controller:
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
 
     def follow(self):
-        message = json.dumps({
-            "operation": "follow",
-            "username": "someone",
-            "timestamp": "sometime"
-        })
+        message = Message.follow(self.peer.username)
         self.peer.send_message("127.0.0.1", 3000, message)
 
     @staticmethod
