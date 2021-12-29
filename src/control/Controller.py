@@ -1,6 +1,7 @@
 from src.Peer import Peer
 from .Menu import Menu
 import asyncio
+import json
 
 
 class Controller:
@@ -15,13 +16,21 @@ class Controller:
         options = {
             "Show timeline": Controller.undefined,
             "Show followers": Controller.undefined,
-            "Follow a user": Controller.undefined,
+            "Follow a user": self.follow,
             "Exit": exit
         }
         self.handle("Main Menu", options)
 
     def run_in_loop(self, function):
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
+
+    def follow(self):
+        message = json.dumps({
+            "operation": "follow",
+            "username": "someone",
+            "timestamp": "sometime"
+        })
+        self.peer.send_message("127.0.0.1", 3000, message)
 
     @staticmethod
     def undefined():

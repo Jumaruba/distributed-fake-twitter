@@ -15,7 +15,7 @@ def check_args():
         port = int(sys.argv[2])
         ip_b = None
         port_b = None
-        if len(sys.argv) > 4:
+        if len(sys.argv) > 3:
             ip_b = sys.argv[3]
             port_b = int(sys.argv[4])
         return ip, port, ip_b, port_b

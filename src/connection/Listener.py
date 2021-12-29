@@ -5,6 +5,7 @@ BUFFER = 1024
 
 class Listener(Thread):
     def __init__(self, ip, port):
+        super().__init__()
         self.ip = ip
         self.port = port
 
@@ -14,9 +15,11 @@ class Listener(Thread):
 
     @staticmethod
     async def handle_request(reader, writer):
+        print("Received request")
         while True:
             data = (await reader.readline()).strip()
             if not data:
+                print("No Data - Breaking")
                 break
             print(data)
         writer.close()
@@ -25,7 +28,7 @@ class Listener(Thread):
     # Running listener functions
     # -------------------------------------------------------------------------
 
-    async def start(self):
+    async def serve(self):
         self.server = await asyncio.start_server(
             Listener.handle_request,
             self.ip,
@@ -35,4 +38,4 @@ class Listener(Thread):
 
     def run(self):
         listener_loop = asyncio.new_event_loop()
-        listener_loop.run_until_complete(self.start())
+        listener_loop.run_until_complete(self.serve())

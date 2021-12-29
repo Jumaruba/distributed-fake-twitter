@@ -54,8 +54,7 @@ class Node:
     # --------------------------------------------------------------------------
 
     def send_message(self, destiny_ip, detiny_port, message):
-        sender = Sender(destiny_ip, detiny_port)
-        sender.send(message.encode())
+        asyncio.run_coroutine_threadsafe(Sender.send_message(destiny_ip, detiny_port, message), loop=self.loop)
 
     def start_listening(self):
         self.listener = Listener(self.ip, self.port)
