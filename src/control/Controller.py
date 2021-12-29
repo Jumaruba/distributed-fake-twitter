@@ -1,10 +1,11 @@
 import asyncio
-import json
 import time
 
 from ..connection import Message
 from ..Peer import Peer
 from .Menu import Menu
+
+
 class Controller:
     def __init__(self, peer: Peer) -> None:
         self.peer = peer
@@ -15,6 +16,7 @@ class Controller:
 
     def run(self):
         options = {
+            "Create post": self.create_post,
             "Show timeline": Controller.undefined,
             "Show followers": Controller.undefined,
             "Follow a user": self.follow,
@@ -24,6 +26,12 @@ class Controller:
 
     def run_in_loop(self, function):
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
+
+    def create_post(self):
+        message_body = input("What\'s happening? ")
+        message = Message.post(self.peer.new_message_id, self.peer.username, message_body)
+        # TODO send to all the followers.
+        self.peer.last_message_id += 1
 
     def follow(self):
         message = Message.follow(self.peer.username)

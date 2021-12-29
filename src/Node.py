@@ -5,7 +5,7 @@ import threading
 from kademlia.network import Server
 
 from .connection import Sender
-from .connection.Listener import Listener
+from .connection import Listener
 
 
 class Node:
@@ -55,8 +55,3 @@ class Node:
 
     def send_message(self, destiny_ip, detiny_port, message):
         asyncio.run_coroutine_threadsafe(Sender.send_message(destiny_ip, detiny_port, message), loop=self.loop)
-
-    def start_listening(self):
-        self.listener = Listener(self.ip, self.port)
-        self.listener.daemon = True
-        self.listener.start()
