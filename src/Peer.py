@@ -22,6 +22,7 @@ class Peer(Node):
         user_info = await self.get_username_info(username)
         if user_info is None: 
             return False  
+        print(user_info)
         self.username = username 
         return True 
 
@@ -47,12 +48,12 @@ class Peer(Node):
 
     # Set's a value for the key self.username in the network.
     async def set_user_hash_value(self):
-        await self.server.set(self.username, self.build_table_value())
+        await self.server.set(self.username, str(self.build_table_value()))
 
 
     # Get the value associated with the given username from the network. 
     async def get_username_info(self, username: str):
-        return await self.server.get(username, default=None)
+        return await self.server.get(username)
 
 
     # Creates the values to the table in the kademlia. 

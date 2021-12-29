@@ -11,18 +11,16 @@ from .connection.Listener import Listener
 class Node:
     def __init__(self, ip, port, b_ip=None, b_port=None):
         self.set_logger()
-
         self.server = Server()
-
         self.ip = ip
         self.port = port
-        self.listener = Listener(self.ip, self.port)
-
-        # Create new node
+        self.listener = Listener()
+        # NOTE When a function reaches an io operation, it will switches between the functions called with this loop. 
+        # The program has only one event loop. 
+        self.loop = asyncio.get_event_loop()
         if b_port is not None:
             self.b_node = (b_ip, b_port)
             self.connect_to_bootstrap_node()
-        # Create bootstrap node
         else:
             self.create_bootstrap_node()
 
@@ -44,26 +42,15 @@ class Node:
     # --------------------------------------------------------------------------
 
     def connect_to_bootstrap_node(self):
-        loop = self.create_node()
-        loop.run_until_complete(self.server.bootstrap([self.b_node]))
-        return loop
+        self.loop.run_until_complete(self.server.listen(self.port))
+        self.loop.run_until_complete(self.server.bootstrap([self.b_node]))
 
-    def create_bootstrap_node(self):  
-        return self.create_node()
-
-    def create_node(self):
-        loop = asyncio.get_event_loop()
-        # loop.set_debug(True)
-        loop.run_until_complete(self.server.listen(self.port))
-        return loop
+    def create_bootstrap_node(self):   
+        self.loop.run_until_complete(self.server.listen(self.port))
 
     # --------------------------------------------------------------------------
     # Communication with other nodes
     # --------------------------------------------------------------------------
-
-    def listen(self):
-        self.listener_thread = threading.Thread(target=self.listener.listen)
-        self.listener_thread.start()
 
     def send_message(self, destiny_ip, detiny_port, message):
         sender = Sender(destiny_ip, detiny_port)
