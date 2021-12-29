@@ -1,44 +1,44 @@
-from asyncio.tasks import ensure_future
-from threading import Thread 
 import asyncio
-from time import sleep
+from asyncio.tasks import ensure_future
+from threading import Thread
+import sys
 
-from .menu import Menu
-
+from .control import Menu, Controller
 from .Peer import Peer
 from .database import Database
 
-IP = "127.0.0.1"
 
-def main(): 
-    peer_no = int(input("Peer number: "))
-    operation = input("Operation: ")
-    if peer_no == 1: 
-        # Bootstrap peer 
-        peer = Peer(IP, 3001)
-    else:
-        # Peer to be registered 
-        peer = Peer(IP, 3006, IP, 3001)
-        peer.send_message(IP, 3001, "HI".encode())
+def check_args():
+    # Function to check if the arguments are correct
+    try:
+        ip = sys.argv[1]
+        port = int(sys.argv[2])
+        ip_b = None
+        port_b = None
+        if len(sys.argv) > 4:
+            ip_b = sys.argv[3]
+            port_b = int(sys.argv[4])
+        return ip, port, ip_b, port_b
+    except:
+        print("Wrong arguments")
+    exit()
 
 
-    # NOTE The listening and bootstrapping are running forever. 
-    # Putting this before the operation, we are initializing the kademlia server. 
+def main(ip: str, port: int, ip_b: str = None, port_b: int = None):
+    peer = Peer(ip, port, ip_b, port_b)
+
+    # NOTE The listening and bootstrapping are running forever.
+    # Putting this before the operation, we are initializing the kademlia server.
     Thread(target=peer.loop.run_forever, daemon=True).start()
 
-    if operation == "R":
-        operation_task = asyncio.run_coroutine_threadsafe(peer.register("bob"), peer.loop)
-    elif operation == "L": 
-        operation_task = asyncio.run_coroutine_threadsafe(peer.login("bob"), peer.loop)
-    else: 
-        return "OK"
+    controller = Controller(peer)
+    controller.start()
+    while True:
+        controller.run()
 
-    return operation_task.result()
-        
-if __name__ == '__main__': 
-    print(main())
-    #(reader, writer) = await asyncio.open_connection(ip, port, loop= asyncio.get_event_loop())
+    return peer
 
-    while True: 
-        ...
 
+if __name__ == '__main__':
+    peer = main(*check_args())
+    # (reader, writer) = await asyncio.open_connection(ip, port, loop= asyncio.get_event_loop())

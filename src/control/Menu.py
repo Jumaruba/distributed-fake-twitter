@@ -21,25 +21,6 @@ class Menu:
         return Menu().size
 
     # -------------------------------------------------------------------------
-    # Definition of menus
-    # -------------------------------------------------------------------------
-
-    @staticmethod
-    def first():
-        return Menu.get_option("Welcome to fake_twitter", [
-            "Login",
-            "Exit"
-        ])
-
-    @staticmethod
-    def main():
-        return Menu.get_option("Choose an action", [
-            "View feed",
-            "Subscribe to a user",
-            "Exit"
-        ])
-
-    # -------------------------------------------------------------------------
     # Printing functions
     # -------------------------------------------------------------------------
 
@@ -55,14 +36,7 @@ class Menu:
                     print(
                         f"Your input should be in the range [{min_value}, {max_value}].")
                 else:
-<<<<<<< HEAD
-                    # If option = 1 ask for username
-                    return option 
-            except ValueError: 
-                print(f"Your input should be an integer.")
-
-=======
-                    return option
+                    return options[option - 1]
             except ValueError:
                 print(f"Your input should be an integer.")
 
@@ -125,4 +99,3 @@ def replicate(char, size=None):
     if size is None:
         size = MENU_SIZE
     return size * char
->>>>>>> eed62e0d2f5163032503a498ef3a6d103e828d8e

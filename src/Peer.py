@@ -13,18 +13,17 @@ class Peer(Node):
         if user_info is None:
            self.username = username
            await self.set_user_hash_value()
-           return True
+           return (True, "Registered with success!")
         else:
-            return False
+            return (False, "It wasn't possible to register user...")
 
 
     async def login(self, username): 
         user_info = await self.get_username_info(username)
         if user_info is None: 
-            return False  
-        print(user_info)
+            return (False, "Username not found!")
         self.username = username 
-        return True 
+        return (True , "Logged with success!")
 
 
     @property

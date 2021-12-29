@@ -14,7 +14,7 @@ class Node:
         self.server = Server()
         self.ip = ip
         self.port = port
-        self.listener = Listener()
+        #$self.listener = Listener()
         # NOTE When a function reaches an io operation, it will switches between the functions called with this loop. 
         # The program has only one event loop. 
         self.loop = asyncio.get_event_loop()
