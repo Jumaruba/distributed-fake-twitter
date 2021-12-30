@@ -1,3 +1,4 @@
+import json
 from .connection import Listener, Message
 from .database import Database
 from .Node import Node
@@ -41,10 +42,9 @@ class Peer(Node):
             Database().insert(message)
             for follower_username in self.followers: 
                 follower_info = await self.get_username_info(follower_username)
-                print(follower_info)
-                print("after await")
-                self.send_message(follower_info.ip, int(follower_info.port), message) 
-            print("After for loop")
+                follower_info = json.loads(follower_info)
+                self.send_message(follower_info['ip'], follower_info['port'], message) 
+
         except NTPException:
             # Not possible to create message when there's an NTP exception. 
             # So, it's necessary to recover the previous last message id.  
@@ -64,8 +64,8 @@ class Peer(Node):
 
     async def set_user_hash_value(self):
         # Set's a value for the key self.username in the network.
-        await self.server.set(self.username, str(self.build_table_value()))
-
+        await self.server.set(self.username, json.dumps(self.build_table_value()))
+       
     async def get_username_info(self, username: str):
         # Get the value associated with the given username from the network.
         return await self.server.get(username)

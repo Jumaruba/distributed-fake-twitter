@@ -16,9 +16,8 @@ class Listener(Thread):
     # -------------------------------------------------------------------------
 
     def handle_follower(self, message):
-        #TODO it's not saving the follower 
         print("New follower:", message["username"])
-        self.peer.followers.append(message)
+        self.peer.followers.append(message["username"])
 
     async def handle_request(self, reader, writer):
         print("Received request")

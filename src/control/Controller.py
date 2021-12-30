@@ -31,13 +31,13 @@ class Controller:
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
 
 
-    # TEMP
+    #TODO - in progress
     def post(self): 
         message = input("What\'s happening? ")
         self.run_in_loop(self.peer.post(message))
         #Thread(target=self.run_in_loop(self.peer.post(message))).start()
 
-    # TEMP
+    #TODO
     def follow(self):
         message = Message.follow(self.peer.username)
         self.peer.send_message("127.0.0.1", 3000, message) 
