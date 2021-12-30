@@ -1,5 +1,6 @@
 import sqlite3
-
+import json 
+from datetime import datetime
 from ..consts import DATABASE_FILE_PATH
 
 class Database:
@@ -30,7 +31,7 @@ class Database:
         if arguments is None:
             cursor.execute(command)
         else:
-            cursor.executemany(command, arguments)
+            cursor.execute(command, arguments)
         instance.connection.commit()
 
     @staticmethod
@@ -48,7 +49,7 @@ class Database:
             message_id SERIAL PRIMARY KEY,
             user VARCHAR(20) NOT NULL,
             timestamp DATETIME NOT NULL,
-            body VARCHAR NOT NULL
+            body VARCHAR(50) NOT NULL 
         );""")
 
     # -------------------------------------------------------------------------
@@ -56,11 +57,16 @@ class Database:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def insert(message_id, user, timestamp, body):
-        Database.commit("""
-            INSERT INTO messages(message_id, user, timestamp, body)
-            VALUES(?, ?, ?, ?)
-        """, [message_id, user, timestamp, body])
+    def insert(message: str):
+        message = json.loads(message)
+        post_id = message["post_id"]
+        sender = message["sender"]
+        date = message["timestamp"] 
+        body = message["body"]
+        Database.commit("""INSERT INTO messages(message_id, user, timestamp, body) 
+                        VALUES(?,?,?,?)""", [post_id, sender, date, body])
+
+
 
     @staticmethod
     def get_messages():

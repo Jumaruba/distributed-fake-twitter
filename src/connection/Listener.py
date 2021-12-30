@@ -15,7 +15,8 @@ class Listener(Thread):
     # Request handlings
     # -------------------------------------------------------------------------
 
-    def handle_follow(self, message):
+    def handle_follower(self, message):
+        #TODO it's not saving the follower 
         print("New follower:", message["username"])
         self.peer.followers.append(message)
 
@@ -30,8 +31,9 @@ class Listener(Thread):
 
             operation = Message.get_operation(message)
             if operation == "follow":
-                self.handle_follow(message)
-
+                self.handle_follower(message)
+            elif operation == "post": 
+                print("POST received")
             else:
                 print("Invalid operation")
 

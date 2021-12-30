@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from time import time, strftime, localtime
 import ntplib
 
 NTPCLIENT = ntplib.NTPClient()
@@ -20,7 +21,7 @@ class Message:
     @staticmethod
     def post(post_id, username, body):
         return Message.new("post", {
-            "id": post_id,
+            "post_id": post_id,
             "sender": username,
             "body": body,
         })
@@ -32,8 +33,8 @@ class Message:
     @staticmethod
     def new(operation, args):
         args["operation"] = operation
-        args["timestamp"] = str(datetime.now())
-        return json.dumps(args)
+        args["timestamp"] = str(Message.get_time())
+        return json.dumps(args) 
 
     @staticmethod
     def parse_json(line):
@@ -43,13 +44,9 @@ class Message:
 
     @staticmethod
     def get_time():
-        time = ntplib.NTPClient()
-        try:
-            response = time.request('europe.pool.ntp.org', version=3)
-        except Exception as e:
-            print(e)
-            return False
-        return True
+        ntpclient = ntplib.NTPClient()
+        response = ntpclient.request('europe.pool.ntp.org', version=3)
+        return strftime('%Y-%m-%d %H:%M:%S', localtime(response.tx_time))
 
     @staticmethod
     def get_operation(message):
