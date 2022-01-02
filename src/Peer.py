@@ -8,13 +8,15 @@ class Peer(Node):
         super().__init__(ip, port, b_ip, b_port)
         self.last_message_id = 0
         self.followers = []         
-        self.following = []         
-
+        self.following = []       
 
     @property
     def new_message_id(self):
         self.last_message_id += 1
         return self.last_message_id
+
+    def init_database(self):
+        self.database = Database(self.username)
 
     # -------------------------------------------------------------------------
     # Actions
@@ -25,6 +27,7 @@ class Peer(Node):
         if user_info is None:
             self.username = username
             await self.set_user_hash_value()
+            self.init_database()
             return (True, "Registered with success!")
         else:
             return (False, "It wasn't possible to register user...")
@@ -34,18 +37,21 @@ class Peer(Node):
         if user_info is None:
             return (False, "Username not found!")
         self.username = username
+        self.init_database()
         return (True, "Logged with success!")
+
+    
 
     async def post(self, message_body: str): 
         try: 
             message = Message.post(self.new_message_id, self.username, message_body) 
             # Adding to the database.  
-            Database().insert(message)
+            self.database.insert(message)
             for follower_username in self.followers: 
                 follower_info = await self.get_username_info(follower_username)
                 follower_info = json.loads(follower_info)
                 self.send_message(follower_info['ip'], follower_info['port'], message) 
-
+            await self.set_user_hash_value()
         except NTPException:
             # Not possible to create message when there's an NTP exception. 
             # So, it's necessary to recover the previous last message id.  
@@ -65,7 +71,11 @@ class Peer(Node):
         for i, following in enumerate(self.following):
             builder += f"{str(i)} - {following}\n"
         print(builder)
-        
+
+    def show_timeline(self):
+        posts = self.database.get_messages()
+        print(posts)
+
     # -------------------------------------------------------------------------
     # Network functions
     # -------------------------------------------------------------------------
@@ -91,12 +101,14 @@ class Peer(Node):
             "ip": self.ip,
             "port": self.port,
             "last_message_id": self.last_message_id,
-            "followers": self.followers
+            "followers": self.followers,
+            "following": self.following
         }
+    
 
     def save_message(self):
         # async .......
         ...
 
     def print_timeline(self):
-        print(Database.get_messages())
+        print(self.database.get_messages())

@@ -1,6 +1,7 @@
 import asyncio
+import json
 from threading import Thread
-
+from ..database import Database
 from .Message import Message
 
 BUFFER = 1024
@@ -32,12 +33,15 @@ class Listener(Thread):
             if operation == "follow":
                 self.handle_follower(message)
             elif operation == "post": 
-                print("POST received")
+                self.handle_post(message)
             else:
                 print("Invalid operation")
 
         writer.close()
 
+    def handle_post(self, message):
+        self.peer.database.insert(json.dumps(message))
+        
     # -------------------------------------------------------------------------
     # Running listener functions
     # -------------------------------------------------------------------------

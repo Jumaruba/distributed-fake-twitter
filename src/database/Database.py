@@ -5,48 +5,36 @@ from ..consts import DATABASE_FILE_PATH
 
 class Database:
     # -------------------------------------------------------------------------
-    # Creation and instance getter
+    # Creation
     # -------------------------------------------------------------------------
 
-    def __new__(cls):
-        # Singleton class
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(Database, cls).__new__(cls)
-            cls.instance.init()
-            cls.create_table()
-        return cls.instance
-
-    def init(self):
-        self.connection = sqlite3.connect(DATABASE_FILE_PATH)
+    def __init__(self, username):
+        self.database_file_path = f"{DATABASE_FILE_PATH}/{username}.db" 
+        self.connection = sqlite3.connect(self.database_file_path, check_same_thread=False)
         self.cursor = self.connection.cursor()
+        self.create_table()
 
     # -------------------------------------------------------------------------
     # SQL interaction
     # -------------------------------------------------------------------------
 
-    @staticmethod
-    def commit(command, arguments=None):
-        instance = Database()
-        cursor = instance.cursor
+    def commit(self, command, arguments=None):
         if arguments is None:
-            cursor.execute(command)
+            self.cursor.execute(command)
         else:
-            cursor.execute(command, arguments)
-        instance.connection.commit()
+            self.cursor.execute(command, arguments)
+        self.connection.commit()
 
-    @staticmethod
-    def fetch(command):
-        instance = Database()
-        cursor = instance.cursor
-        cursor.execute(command)
-        return instance.connection.fetchall()
+    def fetch(self, command):
+        self.cursor.execute(command)
+        return self.cursor.fetchall()
 
-    @staticmethod
-    def create_table():
-        Database.commit("DROP TABLE IF EXISTS messages")
-        # TODO: Fix the types of the attributes
-        Database.commit("""CREATE TABLE messages (
-            message_id SERIAL PRIMARY KEY,
+    def create_table(self):
+        #TODO: if table exists do nothing.
+        self.commit("DROP TABLE IF EXISTS messages")
+        self.commit("""CREATE TABLE messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message_id INTEGER NOT NULL,
             user VARCHAR(20) NOT NULL,
             timestamp DATETIME NOT NULL,
             body VARCHAR(50) NOT NULL 
@@ -56,21 +44,18 @@ class Database:
     # Specific functions for the context
     # -------------------------------------------------------------------------
 
-    @staticmethod
-    def insert(message: str):
+    def insert(self, message: str):
         message = json.loads(message)
         post_id = message["post_id"]
         sender = message["sender"]
         date = message["timestamp"] 
         body = message["body"]
-        Database.commit("""INSERT INTO messages(message_id, user, timestamp, body) 
+        self.commit("""INSERT INTO messages(message_id, user, timestamp, body) 
                         VALUES(?,?,?,?)""", [post_id, sender, date, body])
 
 
-
-    @staticmethod
-    def get_messages():
-        return Database.fetch("""
+    def get_messages(self):
+        return self.fetch("""
             SELECT message_id, user, timestamp, body
             FROM messages
             ORDER BY timestamp

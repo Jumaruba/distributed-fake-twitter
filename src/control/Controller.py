@@ -3,7 +3,6 @@ import json
 import time
 
 from threading import Thread 
-from src.database.Database import Database
 
 from ..connection import Message
 from ..Peer import Peer
@@ -17,11 +16,11 @@ class Controller:
     def handle(self, title, options):
         option = Menu.get_option(title, list(options.keys())) 
         return options[option]()
-
+    
     def run(self):
         options = {
             "Create post": self.post,
-            "Show timeline": Controller.undefined,
+            "Show timeline": self.peer.show_timeline,
             "Show followers": self.peer.show_followers,
             "Show following": self.peer.show_following,
             "Follow a user": self.follow,
@@ -50,6 +49,7 @@ class Controller:
                 user_info = json.loads(user_info_json)
                 self.peer.send_message(user_info['ip'], user_info['port'], message)
                 self.peer.following.append(username)
+                self.run_in_loop(self.peer.set_user_hash_value())
             else:
                 print(f"The user {username} does not exists")
         else:

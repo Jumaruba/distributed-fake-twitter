@@ -1,3 +1,3 @@
 BUFFER = 1024
-DATABASE_FILE_PATH = "./src/database/messages.db"
+DATABASE_FILE_PATH = "./src/database/dbs"
 MENU_SIZE = 50
