@@ -76,4 +76,5 @@ class Database:
             WHERE user = ?
             ORDER BY timestamp
         """, [username]) 
-        return json.dumps( [dict(ix) for ix in posts] )
+        positions = ["post_id", "user", "timestamp", "body"] 
+        return [dict(zip(positions, value)) for value in posts]

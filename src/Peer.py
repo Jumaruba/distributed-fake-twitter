@@ -68,10 +68,8 @@ class Peer(Node):
             follower_info_json = json.loads(follower_info)
             
             posts = self.database.get_own_posts(self.username)
-
             for post in posts:
-                message = Message.post(post['id'], self.username, post['body'], post['timestamp']) 
-                print(f"MESSAGE: {message}")
+                message = Message.post(post['post_id'], self.username, post['body'], post['timestamp']) 
                 self.send_message(follower_info_json['ip'], follower_info_json['port'], message)
         except Exception as e: 
             print(e)

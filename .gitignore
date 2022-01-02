@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-sdle_venv/*
-src/__pycache__/
-
-src/connection/__pycache__/
-
-src/database/__pycache__/
-
-src/menu/__pycache__/
-=======
 sdle_venv
 **/__pycache__
->>>>>>> eed62e0d2f5163032503a498ef3a6d103e828d8e
+src/database/dbs/*.db
