@@ -1,4 +1,5 @@
 import asyncio
+import json
 import time
 
 from threading import Thread 
@@ -21,7 +22,8 @@ class Controller:
         options = {
             "Create post": self.post,
             "Show timeline": Controller.undefined,
-            "Show followers": Controller.undefined,
+            "Show followers": self.peer.show_followers,
+            "Show following": self.peer.show_following,
             "Follow a user": self.follow,
             "Exit": exit
         }
@@ -30,19 +32,28 @@ class Controller:
     def run_in_loop(self, function):
         return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
 
-
-    #TODO - in progress
     def post(self): 
         message = input("What\'s happening? ")
         self.run_in_loop(self.peer.post(message))
         #Thread(target=self.run_in_loop(self.peer.post(message))).start()
 
-    #TODO
     def follow(self):
+        username = input("Username: ")
         message = Message.follow(self.peer.username)
-        self.peer.send_message("127.0.0.1", 3000, message) 
 
-
+        if username == self.peer.username:
+            print("You can't follow yourself!")
+        elif username not in self.peer.following:
+            user_info_json = self.run_in_loop(self.peer.get_username_info(username)).result()
+            
+            if user_info_json is not None:  
+                user_info = json.loads(user_info_json)
+                self.peer.send_message(user_info['ip'], user_info['port'], message)
+                self.peer.following.append(username)
+            else:
+                print(f"The user {username} does not exists")
+        else:
+            print(f"You're already following {username}")
     
     def register(self):
         username = input("Type your username: ")

@@ -7,7 +7,8 @@ class Peer(Node):
     def __init__(self, ip, port, b_ip=None, b_port=None):
         super().__init__(ip, port, b_ip, b_port)
         self.last_message_id = 0
-        self.followers = []         # The followers username
+        self.followers = []         
+        self.following = []         
 
 
     @property
@@ -52,6 +53,18 @@ class Peer(Node):
             print("Error creating post!")
         
         print("Post created!")
+
+    def show_followers(self):
+        builder = "== Followers ==\n" 
+        for i, follower in enumerate(self.followers):
+            builder += f"{str(i)} - {follower}\n"
+        print(builder)
+
+    def show_following(self):
+        builder = "== Following ==\n" 
+        for i, following in enumerate(self.following):
+            builder += f"{str(i)} - {following}\n"
+        print(builder)
         
     # -------------------------------------------------------------------------
     # Network functions
