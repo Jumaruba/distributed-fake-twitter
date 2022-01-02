@@ -19,12 +19,15 @@ class Message:
         })
 
     @staticmethod
-    def post(post_id, username, body):
-        return Message.new("post", {
-            "post_id": post_id,
-            "sender": username,
-            "body": body,
-        })
+    def post(post_id, username, body, timestamp = None):
+        args = {"post_id": post_id,
+                "sender": username,
+                "body": body,
+                }
+
+        if timestamp is not None:
+            args["timestamp"] = timestamp
+        return Message.new("post", args)
 
     # -------------------------------------------------------------------------
     # Creation and parsing
@@ -33,8 +36,9 @@ class Message:
     @staticmethod
     def new(operation, args):
         args["operation"] = operation
-        args["timestamp"] = str(Message.get_time())
-        return json.dumps(args) 
+        if "timestamp" not in args:
+            args["timestamp"] = str(Message.get_time()) 
+        return json.dumps(args)  
 
     @staticmethod
     def parse_json(line):

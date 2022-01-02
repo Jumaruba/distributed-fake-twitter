@@ -19,6 +19,8 @@ class Listener(Thread):
     def handle_follower(self, message):
         print("New follower:", message["username"])
         self.peer.followers.append(message["username"])
+        asyncio.run_coroutine_threadsafe(self.peer.send_previous_posts(message['username']), self.peer.loop)
+
 
     async def handle_request(self, reader, writer):
         print("Received request")
@@ -38,6 +40,7 @@ class Listener(Thread):
                 print("Invalid operation")
 
         writer.close()
+
 
     def handle_post(self, message):
         self.peer.database.insert(json.dumps(message))

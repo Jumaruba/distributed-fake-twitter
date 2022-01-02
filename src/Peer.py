@@ -4,6 +4,7 @@ from .database import Database
 from .Node import Node
 from ntplib import NTPException
 class Peer(Node):
+
     def __init__(self, ip, port, b_ip=None, b_port=None):
         super().__init__(ip, port, b_ip, b_port)
         self.last_message_id = 0
@@ -32,6 +33,7 @@ class Peer(Node):
         else:
             return (False, "It wasn't possible to register user...")
 
+
     async def login(self, username):
         user_info = await self.get_username_info(username)
         if user_info is None:
@@ -40,11 +42,10 @@ class Peer(Node):
         self.init_database()
         return (True, "Logged with success!")
 
-    
 
-    async def post(self, message_body: str): 
+    async def post(self, message_body: str):
         try: 
-            message = Message.post(self.new_message_id, self.username, message_body) 
+            message = Message.post(self.new_message_id, self.username, message_body)  
             # Adding to the database.  
             self.database.insert(message)
             for follower_username in self.followers: 
@@ -60,11 +61,28 @@ class Peer(Node):
         
         print("Post created!")
 
+
+    async def send_previous_posts(self, follower_username):
+        try: 
+            follower_info = await self.get_username_info(follower_username)
+            follower_info_json = json.loads(follower_info)
+            
+            posts = self.database.get_own_posts(self.username)
+
+            for post in posts:
+                message = Message.post(post['id'], self.username, post['body'], post['timestamp']) 
+                print(f"MESSAGE: {message}")
+                self.send_message(follower_info_json['ip'], follower_info_json['port'], message)
+        except Exception as e: 
+            print(e)
+
+
     def show_followers(self):
         builder = "== Followers ==\n" 
         for i, follower in enumerate(self.followers):
             builder += f"{str(i)} - {follower}\n"
         print(builder)
+
 
     def show_following(self):
         builder = "== Following ==\n" 
@@ -72,8 +90,9 @@ class Peer(Node):
             builder += f"{str(i)} - {following}\n"
         print(builder)
 
+
     def show_timeline(self):
-        posts = self.database.get_messages()
+        posts = self.database.get_posts()
         print(posts)
 
     # -------------------------------------------------------------------------
@@ -111,4 +130,4 @@ class Peer(Node):
         ...
 
     def print_timeline(self):
-        print(self.database.get_messages())
+        print(self.database.get_posts())

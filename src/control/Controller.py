@@ -12,12 +12,39 @@ from .Menu import Menu
 class Controller:
     def __init__(self, peer: Peer) -> None:
         self.peer = peer
+    
 
     def handle(self, title, options):
         option = Menu.get_option(title, list(options.keys())) 
-        return options[option]()
-    
-    def run(self):
+        return options[option]() 
+
+
+    def start(self):
+        self.menu_1()
+        while True:
+            self.menu_2()
+
+
+    def menu_1(self):
+        # NOTE, to get the results from operations task it's necessary to use function_name.result()
+        options = {
+            "Register": self.register,
+            "Login": self.login,
+            "Exit": exit
+        }
+        future = self.handle("Welcome", options)
+
+        # Check result
+        status, message = future.result()
+        if not status:
+            print("[ ERROR ]", message)
+            exit()
+
+        print("[ SUCCESS ]", message)
+        self.peer.start_listening() 
+
+
+    def menu_2(self):
         options = {
             "Create post": self.post,
             "Show timeline": self.peer.show_timeline,
@@ -28,13 +55,15 @@ class Controller:
         }
         self.handle("Main Menu", options)
 
-    def run_in_loop(self, function):
-        return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
+    # -------------------------------------------------------------------------
+    # Actions
+    # -------------------------------------------------------------------------
 
     def post(self): 
         message = input("What\'s happening? ")
         self.run_in_loop(self.peer.post(message))
         #Thread(target=self.run_in_loop(self.peer.post(message))).start()
+
 
     def follow(self):
         username = input("Username: ")
@@ -54,7 +83,14 @@ class Controller:
                 print(f"The user {username} does not exists")
         else:
             print(f"You're already following {username}")
+
     
+
+
+    # -------------------------------------------------------------------------
+    # Register/Login
+    # -------------------------------------------------------------------------
+
     def register(self):
         username = input("Type your username: ")
         return self.run_in_loop(self.peer.register(username))
@@ -64,31 +100,10 @@ class Controller:
         username = input("Type your username: ")
         return self.run_in_loop(self.peer.login(username))
 
+    # -----------------------------------------------------------------
+    # Utils
+    # -----------------------------------------------------------------
 
-    @staticmethod
-    def undefined():
-        print("Handling not implemented...")
-
-    # -------------------------------------------------------------------------
-    # Start menu
-    # -------------------------------------------------------------------------
-
-    def start(self):
-        # NOTE, to get the results from operations task it's necessary to use function_name.result()
-        options = {
-            "Register": self.register,
-            "Login": self.login,
-            "Exit": exit
-        }
-        future = self.handle("Welcome", options)
-
-        # Check result
-        status, message = future.result()
-        if not status:
-            print("[ ERROR ]", message)
-            exit()
-
-        print("[ SUCCESS ]", message)
-        self.peer.start_listening()
-
+    def run_in_loop(self, function):
+        return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
 

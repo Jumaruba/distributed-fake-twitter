@@ -33,12 +33,7 @@ def main(ip: str, port: int, ip_b: str = None, port_b: int = None):
 
     controller = Controller(peer)
     controller.start()
-    while True:
-        controller.run()
-
-    return peer
 
 
 if __name__ == '__main__':
     peer = main(*check_args())
-    # (reader, writer) = await asyncio.open_connection(ip, port, loop= asyncio.get_event_loop())

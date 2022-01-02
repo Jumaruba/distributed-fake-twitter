@@ -2,6 +2,7 @@ import sqlite3
 import json 
 from datetime import datetime
 from ..consts import DATABASE_FILE_PATH
+from os.path import exists
 
 class Database:
     # -------------------------------------------------------------------------
@@ -9,10 +10,13 @@ class Database:
     # -------------------------------------------------------------------------
 
     def __init__(self, username):
-        self.database_file_path = f"{DATABASE_FILE_PATH}/{username}.db" 
+        self.database_file_path = f"{DATABASE_FILE_PATH}/{username}.db"  
+        exists_db = exists(self.database_file_path)
+ 
         self.connection = sqlite3.connect(self.database_file_path, check_same_thread=False)
         self.cursor = self.connection.cursor()
-        self.create_table()
+        if not exists_db: 
+            self.create_table()
 
     # -------------------------------------------------------------------------
     # SQL interaction
@@ -25,16 +29,19 @@ class Database:
             self.cursor.execute(command, arguments)
         self.connection.commit()
 
-    def fetch(self, command):
-        self.cursor.execute(command)
+
+    def fetch(self, command, arguments=None):
+        if arguments is None:
+            self.cursor.execute(command)
+        else:
+            self.cursor.execute(command, arguments)
         return self.cursor.fetchall()
 
+
     def create_table(self):
-        #TODO: if table exists do nothing.
-        self.commit("DROP TABLE IF EXISTS messages")
-        self.commit("""CREATE TABLE messages (
+        self.commit("""CREATE TABLE posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            message_id INTEGER NOT NULL,
+            post_id INTEGER NOT NULL,
             user VARCHAR(20) NOT NULL,
             timestamp DATETIME NOT NULL,
             body VARCHAR(50) NOT NULL 
@@ -50,13 +57,23 @@ class Database:
         sender = message["sender"]
         date = message["timestamp"] 
         body = message["body"]
-        self.commit("""INSERT INTO messages(message_id, user, timestamp, body) 
+        self.commit("""INSERT INTO posts(post_id, user, timestamp, body) 
                         VALUES(?,?,?,?)""", [post_id, sender, date, body])
 
 
-    def get_messages(self):
+    def get_posts(self):
         return self.fetch("""
-            SELECT message_id, user, timestamp, body
-            FROM messages
+            SELECT post_id, user, timestamp, body
+            FROM posts
             ORDER BY timestamp
         """)
+
+
+    def get_own_posts(self, username):
+        posts = self.fetch("""
+            SELECT post_id, user, timestamp, body
+            FROM posts
+            WHERE user = ?
+            ORDER BY timestamp
+        """, [username]) 
+        return json.dumps( [dict(ix) for ix in posts] )
