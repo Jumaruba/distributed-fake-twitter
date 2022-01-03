@@ -3,6 +3,7 @@ from .connection import Listener, Message
 from .database import Database
 from .Node import Node
 from ntplib import NTPException
+
 class Peer(Node):
 
     def __init__(self, ip, port, b_ip, b_port):
@@ -16,11 +17,8 @@ class Peer(Node):
         self.last_message_id += 1
         return self.last_message_id
 
-    def init_database(self):
-        self.database = Database(self.username)
-
     # -------------------------------------------------------------------------
-    # Actions
+    # Main Actions
     # -------------------------------------------------------------------------
 
     async def register(self, username):
@@ -40,6 +38,9 @@ class Peer(Node):
             return (False, "Username not found!")
         self.username = username
         self.init_database()
+        
+        # TODO: retrieve posts from users that were made while the peer was offline
+        await self.retrieve_kademlia_info()
         return (True, "Logged with success!")
 
 
@@ -62,17 +63,16 @@ class Peer(Node):
         print("Post created!")
 
 
-    async def send_previous_posts(self, follower_username):
-        try: 
-            follower_info = await self.get_username_info(follower_username)
-            follower_info_json = json.loads(follower_info)
+    async def follow(self, username: str, message: str):
+        user_info_json = await self.get_username_info(username)
             
-            posts = self.database.get_own_posts(self.username)
-            for post in posts:
-                message = Message.post(post['post_id'], self.username, post['body'], post['timestamp']) 
-                self.send_message(follower_info_json['ip'], follower_info_json['port'], message)
-        except Exception as e: 
-            print(e)
+        if user_info_json is not None:  
+            user_info = json.loads(user_info_json)
+            self.send_message(user_info['ip'], user_info['port'], message)
+            await self.add_following(username)
+            return f"Following {username}"
+        else:
+            return f"The user {username} does not exists"
 
 
     def show_followers(self):
@@ -80,8 +80,8 @@ class Peer(Node):
         for i, follower in enumerate(self.followers):
             builder += f"{str(i)} - {follower}\n"
         print(builder)
-
-
+        
+        
     def show_following(self):
         builder = "== Following ==\n" 
         for i, following in enumerate(self.following):
@@ -94,6 +94,35 @@ class Peer(Node):
         print(posts)
 
     # -------------------------------------------------------------------------
+    # Handle followers/following
+    # -------------------------------------------------------------------------
+
+    async def add_follower(self, username: str):
+        self.followers.append(username)
+        await self.set_user_hash_value()
+
+
+    async def add_following(self, username: str):
+        self.following.append(username)
+        await self.set_user_hash_value()
+
+
+    async def send_previous_posts(self, follower_username):
+        try: 
+            follower_info = await self.get_username_info(follower_username)
+            follower_info_json = json.loads(follower_info)
+            
+            posts = self.database.get_own_posts(self.username)
+            for post in posts:
+                message = Message.post(post['post_id'], self.username, post['body'], post['timestamp']) 
+                self.send_message(follower_info_json['ip'], follower_info_json['port'], message)
+        except Exception as e: 
+            print(e)
+
+    def init_database(self):
+        self.database = Database(self.username)
+
+    # -------------------------------------------------------------------------
     # Network functions
     # -------------------------------------------------------------------------
 
@@ -102,13 +131,16 @@ class Peer(Node):
         listener.daemon = True
         listener.start()
 
+
     async def set_user_hash_value(self):
         # Set's a value for the key self.username in the network.
         await self.server.set(self.username, json.dumps(self.build_table_value()))
-       
+
+
     async def get_username_info(self, username: str):
         # Get the value associated with the given username from the network.
         return await self.server.get(username)
+
 
     def build_table_value(self):
         # Creates the values to the table in the kademlia.
@@ -121,11 +153,14 @@ class Peer(Node):
             "followers": self.followers,
             "following": self.following
         }
-    
 
-    def save_message(self):
-        # async .......
-        ...
+
+    async def retrieve_kademlia_info(self):
+        user_info = await self.get_username_info(self.username)
+        user_info_json = json.loads(user_info)
+        self.followers = user_info_json['followers']
+        self.following = user_info_json['following'] 
+
 
     def print_timeline(self):
         print(self.database.get_posts())

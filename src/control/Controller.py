@@ -1,9 +1,9 @@
-import asyncio
 import json
 
 from ..connection import Message
 from ..Peer import Peer
 from .Menu import Menu
+from ..utils import run_in_loop
 
 
 class Controller:
@@ -57,8 +57,7 @@ class Controller:
 
     def post(self): 
         message = input("What\'s happening? ")
-        self.run_in_loop(self.peer.post(message))
-        #Thread(target=self.run_in_loop(self.peer.post(message))).start()
+        run_in_loop(self.peer.post(message), self.peer.loop)
 
 
     def follow(self):
@@ -66,22 +65,12 @@ class Controller:
         message = Message.follow(self.peer.username)
 
         if username == self.peer.username:
-            print("You can't follow yourself!")
+            print("[ERROR] You can't follow yourself!")
         elif username not in self.peer.following:
-            user_info_json = self.run_in_loop(self.peer.get_username_info(username)).result()
-            
-            if user_info_json is not None:  
-                user_info = json.loads(user_info_json)
-                self.peer.send_message(user_info['ip'], user_info['port'], message)
-                self.peer.following.append(username)
-                self.run_in_loop(self.peer.set_user_hash_value())
-            else:
-                print(f"The user {username} does not exists")
+            message = run_in_loop(self.peer.follow(username, message), self.peer.loop)
+            print(message.result())
         else:
-            print(f"You're already following {username}")
-
-    
-
+            print(f"[ERROR] You're already following {username}")
 
     # -------------------------------------------------------------------------
     # Register/Login
@@ -90,20 +79,12 @@ class Controller:
     def register(self):
         username = input("Type your username: ")
         if username:
-            future = self.run_in_loop(self.peer.register(username))
+            future = run_in_loop(self.peer.register(username), self.peer.loop)
             return future.result()
         return (False, "Empty user is not allowed!")
 
 
     def login(self):
         username = input("Type your username: ")
-        future = self.run_in_loop(self.peer.login(username))
+        future = run_in_loop(self.peer.login(username), self.peer.loop)
         return future.result()
-
-    # -----------------------------------------------------------------
-    # Utils
-    # -----------------------------------------------------------------
-
-    def run_in_loop(self, function):
-        return asyncio.run_coroutine_threadsafe(function, self.peer.loop)
-

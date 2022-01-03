@@ -3,6 +3,7 @@ import json
 from threading import Thread
 from ..database import Database
 from .Message import Message
+from ..utils import run_in_loop
 
 BUFFER = 1024
 class Listener(Thread):
@@ -15,12 +16,6 @@ class Listener(Thread):
     # -------------------------------------------------------------------------
     # Request handlings
     # -------------------------------------------------------------------------
-
-    def handle_follower(self, message):
-        print("New follower:", message["username"])
-        self.peer.followers.append(message["username"])
-        asyncio.run_coroutine_threadsafe(self.peer.send_previous_posts(message['username']), self.peer.loop)
-
 
     async def handle_request(self, reader, writer):
         print("Received request")
@@ -40,6 +35,12 @@ class Listener(Thread):
                 print("Invalid operation")
 
         writer.close()
+
+
+    def handle_follower(self, message):
+        print("New follower:", message["username"])
+        run_in_loop(self.peer.add_follower(message["username"]), self.peer.loop)
+        run_in_loop(self.peer.send_previous_posts(message['username']), self.peer.loop)
 
 
     def handle_post(self, message):
