@@ -32,10 +32,9 @@ class Controller:
             "Login": self.login,
             "Exit": exit
         }
-        future = self.handle("Welcome", options)
+        status, message = self.handle("Welcome", options)
 
         # Check result
-        status, message = future.result()
         if not status:
             print("[ ERROR ]", message)
             exit()
@@ -93,12 +92,16 @@ class Controller:
 
     def register(self):
         username = input("Type your username: ")
-        return self.run_in_loop(self.peer.register(username))
+        if username:
+            future = self.run_in_loop(self.peer.register(username))
+            return future.result()
+        return (False, "Empty user is not allowed!")
 
 
     def login(self):
         username = input("Type your username: ")
-        return self.run_in_loop(self.peer.login(username))
+        future = self.run_in_loop(self.peer.login(username))
+        return future.result()
 
     # -----------------------------------------------------------------
     # Utils
