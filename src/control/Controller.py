@@ -1,8 +1,5 @@
 import asyncio
 import json
-import time
-
-from threading import Thread 
 
 from ..connection import Message
 from ..Peer import Peer

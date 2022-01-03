@@ -1,6 +1,5 @@
 import sqlite3
 import json 
-from datetime import datetime
 from ..consts import DATABASE_FILE_PATH
 from os.path import exists
 

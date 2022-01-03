@@ -13,14 +13,11 @@ def check_args():
     try:
         ip = sys.argv[1]
         port = int(sys.argv[2])
-        ip_b = None
-        port_b = None
-        if len(sys.argv) > 3:
-            ip_b = sys.argv[3]
-            port_b = int(sys.argv[4])
+        ip_b = sys.argv[3]
+        port_b = int(sys.argv[4])
         return ip, port, ip_b, port_b
     except:
-        print("Wrong arguments")
+        print("Wrong arguments. USAGE: python bootstrap.py <ip> <port> <bootstrap_ip> <bootstrap_port>")
     exit()
 
 
@@ -31,8 +28,11 @@ def main(ip: str, port: int, ip_b: str = None, port_b: int = None):
     # Putting this before the operation, we are initializing the kademlia server.
     Thread(target=peer.loop.run_forever, daemon=True).start()
 
-    controller = Controller(peer)
-    controller.start()
+    if ip_b is not None:   
+        controller = Controller(peer)
+        controller.start()
+    #else:
+    #    input('Bootstrap running... Press ENTER to exit')
 
 
 if __name__ == '__main__':

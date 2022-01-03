@@ -5,7 +5,7 @@ from .Node import Node
 from ntplib import NTPException
 class Peer(Node):
 
-    def __init__(self, ip, port, b_ip=None, b_port=None):
+    def __init__(self, ip, port, b_ip, b_port):
         super().__init__(ip, port, b_ip, b_port)
         self.last_message_id = 0
         self.followers = []         

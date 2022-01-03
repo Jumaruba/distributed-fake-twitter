@@ -9,21 +9,19 @@ from .connection import Listener
 
 
 class Node:
-    def __init__(self, ip, port, b_ip=None, b_port=None):
+    def __init__(self, ip, port, b_ip, b_port):
         self.set_logger()
         self.server = Server()
         self.ip = ip
         self.port = port
 
-        # NOTE When a function reaches an io operation, it will switches between the functions called with this loop.
+        # NOTE When a function reaches an io operation, it will switch between the functions called with this loop.
         # The program has only one event loop.
         self.loop = asyncio.get_event_loop()
 
-        if b_port is not None:
-            self.b_node = (b_ip, b_port)
-            self.connect_to_bootstrap_node()
-        else:
-            self.create_bootstrap_node()
+        self.b_node = (b_ip, b_port)
+        self.loop.run_until_complete(self.server.listen(self.port))
+        self.loop.run_until_complete(self.server.bootstrap([self.b_node]))
 
     # --------------------------------------------------------------------------
     # Logger
@@ -36,18 +34,6 @@ class Node:
         handler.setFormatter(formatter)
         log = logging.getLogger('kademlia')
         log.addHandler(handler)
-        # log.setLevel(logging.DEBUG)
-
-    # --------------------------------------------------------------------------
-    # Node Creation
-    # --------------------------------------------------------------------------
-
-    def connect_to_bootstrap_node(self):
-        self.loop.run_until_complete(self.server.listen(self.port))
-        self.loop.run_until_complete(self.server.bootstrap([self.b_node]))
-
-    def create_bootstrap_node(self):
-        self.loop.run_until_complete(self.server.listen(self.port))
 
     # --------------------------------------------------------------------------
     # Communication with other nodes
