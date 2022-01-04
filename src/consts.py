@@ -1,3 +1,5 @@
 BUFFER = 1024
 DATABASE_FILE_PATH = "./src/database/dbs"
 MENU_SIZE = 50
+POST_LIFETIME = 10 # seconds
+GARBAGE_COLLECTOR_FREQUENCY = 10 # seconds

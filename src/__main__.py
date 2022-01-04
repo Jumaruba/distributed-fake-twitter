@@ -17,11 +17,11 @@ def check_args():
         port_b = int(sys.argv[4])
         return ip, port, ip_b, port_b
     except:
-        print("Wrong arguments. USAGE: python bootstrap.py <ip> <port> <bootstrap_ip> <bootstrap_port>")
+        print("Wrong arguments. USAGE: python -m src <ip> <port> <bootstrap_ip> <bootstrap_port>")
     exit()
 
 
-def main(ip: str, port: int, ip_b: str = None, port_b: int = None):
+def main(ip: str, port: int, ip_b: str, port_b: int):
     peer = Peer(ip, port, ip_b, port_b)
 
     # NOTE The listening and bootstrapping are running forever.
@@ -31,9 +31,6 @@ def main(ip: str, port: int, ip_b: str = None, port_b: int = None):
     if ip_b is not None:   
         controller = Controller(peer)
         controller.start()
-    #else:
-    #    input('Bootstrap running... Press ENTER to exit')
-
 
 if __name__ == '__main__':
     peer = main(*check_args())
