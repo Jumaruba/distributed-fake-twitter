@@ -4,6 +4,7 @@ from ..connection import Message
 from ..Peer import Peer
 from .Menu import Menu
 from ..utils import run_in_loop
+from ..consts import MAX_POST_SIZE, MAX_USERNAME_SIZE
 
 
 class Controller:
@@ -57,6 +58,9 @@ class Controller:
 
     def post(self): 
         message = input("What\'s happening? ")
+        if len(message) > MAX_POST_SIZE:
+            print(f"[ERROR] The post can have at maximum {MAX_POST_SIZE} characters!")
+            return
         run_in_loop(self.peer.post(message), self.peer.loop)
 
 
@@ -66,7 +70,7 @@ class Controller:
 
         if username == self.peer.username:
             print("[ERROR] You can't follow yourself!")
-        elif username not in self.peer.following:
+        elif username not in self.peer.info.following:
             message = run_in_loop(self.peer.follow(username, message), self.peer.loop)
             print(message.result())
         else:
@@ -78,6 +82,10 @@ class Controller:
 
     def register(self):
         username = input("Type your username: ")
+        if len(username) > MAX_USERNAME_SIZE:
+            print(f"[ERROR] The username cannot have more than {MAX_USERNAME_SIZE} characters!")
+            return
+
         if username:
             future = run_in_loop(self.peer.register(username), self.peer.loop)
             return future.result()

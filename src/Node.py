@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import logging
 import asyncio
-import threading
 
 from kademlia.network import Server
 
+from .KademliaInfo import KademliaInfo
 from .connection import Sender
-from .connection import Listener
 
 
 class Node:
@@ -39,5 +40,26 @@ class Node:
     # Communication with other nodes
     # --------------------------------------------------------------------------
 
-    def send_message(self, destiny_ip, detiny_port, message):
-        asyncio.run_coroutine_threadsafe(Sender.send_message(destiny_ip, detiny_port, message), loop=self.loop)
+    def send_message(self, destiny_ip: str, destiny_port: int, message):
+        asyncio.run_coroutine_threadsafe(Sender.send_message(
+            destiny_ip, destiny_port, message), loop=self.loop)
+
+    # --------------------------------------------------------------------------
+    # Kademlia
+    # --------------------------------------------------------------------------
+
+    async def set_kademlia_info(self, key: str, kademlia_info) -> None:
+        """
+        Set's a value for the key self.username in the network.
+        The value contains the peer properties. 
+        """
+        await self.server.set(key, kademlia_info.serialize)
+
+    async def get_kademlia_info(self, key: str) -> KademliaInfo | None:
+        """
+        Get the value associated with the given username from the network.
+        """
+        info = await self.server.get(key)
+        if info is None:
+            return None
+        return KademliaInfo.deserialize(info)

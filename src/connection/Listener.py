@@ -44,21 +44,22 @@ class Listener(Thread):
     def handle_follower(self, message):
         print("New follower:", message["sender"])
         run_in_loop(self.peer.add_follower(message["sender"]), self.peer.loop)
-        run_in_loop(self.peer.send_all_posts(
-            message["sender"]), self.peer.loop)
+        run_in_loop(self.peer.send_all_previous_posts(message["sender"]),
+                    self.peer.loop)
 
     def handle_post(self, message):
         """
         Handles the reception of a post from a user that this peer is following.
         """
-        if message["sender"] in self.peer.following:
+        if message["sender"] in self.peer.info.following:
             self.peer.database.insert(json.dumps(message))
 
     async def handle_sync_posts(self, message, writer):
-        
+
         posts = json.dumps(self.peer.database.get_posts_after(
-            message["username"], 
+            message["username"],
             message["last_post_id"]))
+        # TODO: delete later this print
         print(posts)
         writer.write(posts.encode())
         writer.write_eof()

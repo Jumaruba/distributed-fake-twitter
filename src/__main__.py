@@ -6,6 +6,7 @@ import sys
 from .control import Controller
 from .Peer import Peer
 from .database import Database
+from .KademliaInfo import KademliaInfo
 
 
 def check_args():
@@ -22,6 +23,7 @@ def check_args():
 
 
 def main(ip: str, port: int, ip_b: str, port_b: int):
+
     peer = Peer(ip, port, ip_b, port_b)
 
     # NOTE The listening and bootstrapping are running forever.
@@ -31,6 +33,7 @@ def main(ip: str, port: int, ip_b: str, port_b: int):
     if ip_b is not None:   
         controller = Controller(peer)
         controller.start()
+
 
 if __name__ == '__main__':
     peer = main(*check_args())

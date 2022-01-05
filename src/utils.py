@@ -1,5 +1,5 @@
 import asyncio
-from time import time, strftime, localtime
+from time import strftime, localtime
 import ntplib
 from .consts import NTP_MAX_TRIES
 
@@ -16,7 +16,7 @@ def get_time():
     for _ in range(NTP_MAX_TRIES):
         try:
             response = ntpclient.request('pool.ntp.org', version=3)
-            break
+            return strftime('%Y-%m-%d %H:%M:%S', localtime(response.tx_time))
         except ntplib.NTPException:
             pass
-    return strftime('%Y-%m-%d %H:%M:%S', localtime(response.tx_time))
+    raise ntplib.NTPException
