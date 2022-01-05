@@ -29,7 +29,7 @@ class Peer(Node):
         user_info = await self.get_username_info(username)
         if user_info is None:
             self.username = username
-            await self.set_user_hash_value()
+            await self.set_kademlia_value()
             self.init_database()
             return (True, "Registered with success!")
         else:
@@ -50,13 +50,11 @@ class Peer(Node):
         try:
             message = Message.post(self.new_message_id,
                                    self.username, message_body)
-            # Adding to the database.
             self.database.insert(message)
             for follower_username in self.followers:
                 follower_info = await self.get_username_info(follower_username)
-                self.send_message(
-                    follower_info["ip"], follower_info["port"], message)
-            await self.set_user_hash_value()
+                self.send_message(follower_info["ip"], follower_info["port"], message)
+            await self.set_kademlia_value()
             print("Post created!")
         except NTPException:
             # Not possible to create message when there's an NTP exception.
@@ -94,37 +92,49 @@ class Peer(Node):
     # Handle followers/following
     # -------------------------------------------------------------------------
 
-    async def add_follower(self, username: str):
+    async def add_follower(self, username: str) -> None:
         self.followers.append(username)
-        await self.set_user_hash_value()
+        await self.set_kademlia_value()
 
-    async def add_following(self, username: str):
+    async def add_following(self, username: str) -> None:
         self.following.append(username)
-        await self.set_user_hash_value()
+        await self.set_kademlia_value()
 
-    async def send_all_posts(self, follower_username):
+    async def send_all_previous_posts(self, follower_username) -> None:
+        """
+        Send all the posts to a specific follower.
+        """
         try:
             follower_info = await self.get_username_info(follower_username)
+            follower_ip = follower_info["ip"]
+            follower_port = follower_info["port"]
 
-            posts = self.database.get_posts(self.username)
+            posts = self.database.get_posts(self.username) 
+
             for post in posts:
-                message = Message.post(
-                    post["post_id"],
-                    self.username,
-                    post["body"],
-                    post["timestamp"]
-                )
-                self.send_message(follower_info["ip"],
-                                  follower_info["port"], message)
+                self.send_previous_post(post, follower_ip, follower_port) 
+
         except Exception as e:
-            print(e)
+            print(e) 
+
+    def send_previous_post(self, post, ip: str, port: int) -> None: 
+        message = Message.post(
+            post["post_id"],
+            self.username,
+            post["body"],
+            post["timestamp"]
+        )
+        self.send_message(ip, port, message)
 
     def init_database(self):
+        """
+        Initializes the sqlite database and the garbage collector to clean the oldest messages with some frequency.
+        """
         self.database = Database(self.username)
         self.start_garbage_collection()
 
     # -------------------------------------------------------------------------
-    # Network functions
+    # Network/Kademlia functions
     # -------------------------------------------------------------------------
 
     def start_listening(self):
@@ -132,21 +142,17 @@ class Peer(Node):
         listener.daemon = True
         listener.start()
 
-    async def set_user_hash_value(self):
-        # Set's a value for the key self.username in the network.
-        await self.server.set(self.username, json.dumps(self.build_table_value()))
+    async def set_kademlia_info(self) -> None:
+        """
+        Set's a value for the key self.username in the network.
+        The value contains the peer properties. 
+        """ 
+        await self.server.set(self.username, json.dumps(self.build_kademlia_info()))
 
-    async def get_username_info(self, username: str) -> dict:
-        # Get the value associated with the given username from the network.
-        username_info = await self.server.get(username)
-        if username_info is None:
-            return None
-        return json.loads(username_info)
-
-    def build_table_value(self):
-        # Creates the values to the table in the kademlia.
-        # Suggestions: who follows him, who he is following,
-        # whoms information he is storing, the last message sent.
+    def build_kademlia_info(self) -> dict:
+        """
+        Creates kademlia table value object.
+        """
         return {
             "ip": self.ip,
             "port": self.port,
@@ -155,11 +161,23 @@ class Peer(Node):
             "following": self.following
         }
 
-    async def retrieve_kademlia_info(self):
+    async def retrieve_kademlia_info(self) -> None:
+        """
+        Recovers the self user information from kademlia and udpates the information in the peer.
+        """
         user_info = await self.get_username_info(self.username)
         self.followers = user_info["followers"]
         self.following = user_info["following"]
         self.last_message_id = user_info["last_message_id"]
+ 
+    async def get_username_info(self, username: str) -> dict:
+        """
+        Get the value associated with the given username from the network.
+        """
+        username_info = await self.server.get(username)
+        if username_info is None:
+            return None
+        return json.loads(username_info)
 
     async def retrieve_missing_posts(self):
         async def sync_with_user(message, user_info):
@@ -195,9 +213,6 @@ class Peer(Node):
                     raise "No peer could provide the posts"
             print(posts)
             self.database.add_posts(posts)
-
-    def print_timeline(self):
-        print(self.database.get_all_posts())
 
     # -------------------------------------------------------------------------
     # Garbage Collector
