@@ -6,6 +6,8 @@ from .Message import Message
 from ..utils import run_in_loop
 
 BUFFER = 1024
+
+
 class Listener(Thread):
     def __init__(self, ip, port, peer):
         super().__init__()
@@ -24,28 +26,44 @@ class Listener(Thread):
 
         if line:
             message = Message.parse_json(line)
+            # TODO: delete print in the future.
             print(message)
 
             operation = Message.get_operation(message)
             if operation == "follow":
                 self.handle_follower(message)
-            elif operation == "post": 
+            elif operation == "post":
                 self.handle_post(message)
+            elif operation == "sync_posts":
+                await self.handle_sync_posts(message, writer)
             else:
                 print("Invalid operation")
 
         writer.close()
 
-
     def handle_follower(self, message):
-        print("New follower:", message["username"])
-        run_in_loop(self.peer.add_follower(message["username"]), self.peer.loop)
-        run_in_loop(self.peer.send_previous_posts(message['username']), self.peer.loop)
-
+        print("New follower:", message["sender"])
+        run_in_loop(self.peer.add_follower(message["sender"]), self.peer.loop)
+        run_in_loop(self.peer.send_previous_posts(
+            message["sender"]), self.peer.loop)
 
     def handle_post(self, message):
-        self.peer.database.insert(json.dumps(message))
+        """
+        Handles the reception of a post from a user that this peer is following.
+        """
+        if message["sender"] in self.peer.following:
+            self.peer.database.insert(json.dumps(message))
+
+    async def handle_sync_posts(self, message, writer):
         
+        posts = json.dumps(self.peer.database.get_posts_after(
+            message["username"], 
+            message["last_post_id"]))
+        print(posts)
+        writer.write(posts.encode())
+        writer.write_eof()
+        await writer.drain()
+
     # -------------------------------------------------------------------------
     # Running listener functions
     # -------------------------------------------------------------------------

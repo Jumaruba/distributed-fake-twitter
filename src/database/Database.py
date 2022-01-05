@@ -64,19 +64,44 @@ class Database:
                        WHERE user != ? AND timestamp < datetime(?, ?)
                     """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
 
-    def get_posts(self):
+    def add_posts(self, posts):
+        posts_list = json.loads(posts)
+        for post in posts_list:
+            self.commit("""INSERT INTO posts(post_id, user, timestamp, body) 
+                        VALUES(?,?,?,?)
+                        """, [post["post_id"], post["user"], post["timestamp"], post["body"]])
+
+    def get_all_posts(self):
         return self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts
             ORDER BY timestamp
         """)
 
-    def get_own_posts(self, username):
+    def last_message(self, username):
+        return self.fetch("""
+            SELECT MAX(post_id)
+            FROM posts
+            WHERE user == ?
+        """, [username])[0][0]
+
+    def get_posts(self, username):
         posts = self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts
             WHERE user = ?
             ORDER BY timestamp
         """, [username])
+        positions = ["post_id", "user", "timestamp", "body"]
+        return [dict(zip(positions, value)) for value in posts]
+
+    def get_posts_after(self, username, last_post_id):
+        posts = self.fetch("""
+            SELECT post_id, user, timestamp, body
+            FROM posts
+            WHERE user = ?
+            AND post_id > ?
+            ORDER BY timestamp
+        """, [username, last_post_id])
         positions = ["post_id", "user", "timestamp", "body"]
         return [dict(zip(positions, value)) for value in posts]

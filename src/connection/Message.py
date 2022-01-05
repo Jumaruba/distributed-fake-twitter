@@ -10,28 +10,34 @@ class Message:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def follow(username):
-        return Message.new("follow", {
+    def sync_posts(sender, last_post_id, username):
+        return Message.new(sender, "sync_posts", {
+            "last_post_id": last_post_id,
             "username": username,
         })
 
     @staticmethod
-    def post(post_id, username, body, timestamp=None):
-        args = {"post_id": post_id,
-                "sender": username,
-                "body": body,
-                }
+    def follow(sender):
+        return Message.new(sender, "follow", {})
+
+    @staticmethod
+    def post(post_id, sender, body, timestamp=None):
+        args = {
+            "post_id": post_id,
+            "body": body,
+        }
 
         if timestamp is not None:
             args["timestamp"] = timestamp
-        return Message.new("post", args)
+        return Message.new(sender, "post", args)
 
     # -------------------------------------------------------------------------
     # Creation and parsing
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def new(operation, args):
+    def new(sender, operation, args):
+        args["sender"] = sender
         args["operation"] = operation
         if "timestamp" not in args:
             args["timestamp"] = str(get_time())

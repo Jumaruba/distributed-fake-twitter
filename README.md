@@ -1,10 +1,10 @@
 # SDLE Project
 
-SDLE Project for group T&lt;n&gt;G&lt;p&gt;&lt;q&gt;.
+SDLE Project for group T3G14.
 
 Group members:
 
-1. &lt;first name&gt; &lt;family name&gt; (&lt;email address&gt;)
-2. &lt;first name&gt; &lt;family name&gt; (&lt;email address&gt;)
-3. &lt;first name&gt; &lt;family name&gt; (&lt;email address&gt;)
-4. &lt;first name&gt; &lt;family name&gt; (&lt;email address&gt;)
+1. Alexandre Abreu ([up201800168@up.pt](mailto:up201800168@up.pt))
+2. Diana Freitas ([up201806230@up.pt](mailto:up201806230@up.pt))
+3. Juliane Marubayashi ([up201800175@up.pt](mailto:up201800175@up.pt))
+4. Simão Lúcio ([up201303845@up.pt](mailto:up201303845@up.pt))

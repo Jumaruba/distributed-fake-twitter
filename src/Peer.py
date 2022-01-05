@@ -6,7 +6,7 @@ from .Node import Node
 from .utils import get_time
 from ntplib import NTPException
 import threading
-
+import asyncio 
 
 class Peer(Node):
 
@@ -41,9 +41,9 @@ class Peer(Node):
             return (False, "Username not found!")
         self.username = username
         self.init_database()
-        
-        # TODO: retrieve posts from users that were made while the peer was offline
+
         await self.retrieve_kademlia_info()
+        await self.retrieve_missing_posts()
         return (True, "Logged with success!")
 
     async def post(self, message_body: str):
@@ -56,15 +56,14 @@ class Peer(Node):
                 follower_info = await self.get_username_info(follower_username)
                 follower_info = json.loads(follower_info)
                 self.send_message(
-                    follower_info['ip'], follower_info['port'], message)
+                    follower_info["ip"], follower_info["port"], message)
             await self.set_user_hash_value()
+            print("Post created!")
         except NTPException:
             # Not possible to create message when there's an NTP exception.
             # So, it's necessary to recover the previous last message id.
             self.last_message_id -= 1
-            print("Error creating post!")
-
-        print("Post created!")
+            print("Error while trying to get the timestamp of the new post!")
 
     async def follow(self, username: str, message: str):
         user_info_json = await self.get_username_info(username)
@@ -90,7 +89,7 @@ class Peer(Node):
         print(builder)
 
     def show_timeline(self):
-        posts = self.database.get_posts()
+        posts = self.database.get_all_posts()
         print(posts)
 
     # -------------------------------------------------------------------------
@@ -110,16 +109,16 @@ class Peer(Node):
             follower_info = await self.get_username_info(follower_username)
             follower_info_json = json.loads(follower_info)
 
-            posts = self.database.get_own_posts(self.username)
+            posts = self.database.get_posts(self.username)
             for post in posts:
                 message = Message.post(
-                    post['post_id'],
+                    post["post_id"],
                     self.username,
-                    post['body'],
-                    post['timestamp']
+                    post["body"],
+                    post["timestamp"]
                 )
-                self.send_message(follower_info_json['ip'],
-                                  follower_info_json['port'], message)
+                self.send_message(follower_info_json["ip"],
+                                  follower_info_json["port"], message)
         except Exception as e:
             print(e)
 
@@ -140,7 +139,7 @@ class Peer(Node):
         # Set's a value for the key self.username in the network.
         await self.server.set(self.username, json.dumps(self.build_table_value()))
 
-    async def get_username_info(self, username: str):
+    async def get_username_info(self, username: str) -> str:
         # Get the value associated with the given username from the network.
         return await self.server.get(username)
 
@@ -156,14 +155,52 @@ class Peer(Node):
             "following": self.following
         }
 
+    # TODO: change this function name to recover_kademlia_info
+
     async def retrieve_kademlia_info(self):
         user_info = await self.get_username_info(self.username)
         user_info_json = json.loads(user_info)
-        self.followers = user_info_json['followers']
-        self.following = user_info_json['following']
+        self.followers = user_info_json["followers"]
+        self.following = user_info_json["following"]
+
+    async def retrieve_missing_posts(self):
+        async def sync_with_user(message, user_info):
+            user_info_json = json.loads(user_info)  
+            reader, writer = await asyncio.open_connection(user_info_json["ip"], user_info_json["port"])
+
+            writer.write(message.encode())
+            writer.write_eof()
+            await writer.drain()
+
+            return await reader.read()
+
+        for user in self.following:
+            message = Message.sync_posts(
+                self.username,
+                self.database.last_message(user),
+                user)
+
+            # Try with the owner of the messages
+            user_info = await self.get_username_info(user)
+            try: 
+                posts = await sync_with_user(message, user_info)
+            except ConnectionRefusedError:
+                # Otherwise try with all the other followers
+                followers = user_info["followers"] 
+                for follower in followers:
+                    follower_info = await self.get_username_info(follower) 
+                    try: 
+                        posts = await sync_with_user(message, follower_info) 
+                    except ConnectionRefusedError:
+                        continue
+                    break
+                else:
+                    raise "No peer could provide the posts"
+
+            self.database.add_posts(posts)
 
     def print_timeline(self):
-        print(self.database.get_posts())
+        print(self.database.get_all_posts())
 
     # -------------------------------------------------------------------------
     # Garbage Collector
