@@ -155,13 +155,12 @@ class Peer(Node):
             "following": self.following
         }
 
-    # TODO: change this function name to recover_kademlia_info
-
     async def retrieve_kademlia_info(self):
         user_info = await self.get_username_info(self.username)
         user_info_json = json.loads(user_info)
         self.followers = user_info_json["followers"]
         self.following = user_info_json["following"]
+        self.last_message_id = user_info_json["last_message_id"]
 
     async def retrieve_missing_posts(self):
         async def sync_with_user(message, user_info):
@@ -186,8 +185,9 @@ class Peer(Node):
                 posts = await sync_with_user(message, user_info)
             except ConnectionRefusedError:
                 # Otherwise try with all the other followers
-                followers = user_info["followers"] 
-                for follower in followers:
+                user_info_json = json.loads(user_info)
+                followers_username = user_info_json["followers"]
+                for follower in followers_username:
                     follower_info = await self.get_username_info(follower) 
                     try: 
                         posts = await sync_with_user(message, follower_info) 
@@ -196,7 +196,7 @@ class Peer(Node):
                     break
                 else:
                     raise "No peer could provide the posts"
-
+            print(posts)
             self.database.add_posts(posts)
 
     def print_timeline(self):
