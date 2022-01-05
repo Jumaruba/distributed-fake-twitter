@@ -44,7 +44,7 @@ class Listener(Thread):
     def handle_follower(self, message):
         print("New follower:", message["sender"])
         run_in_loop(self.peer.add_follower(message["sender"]), self.peer.loop)
-        run_in_loop(self.peer.send_previous_posts(
+        run_in_loop(self.peer.send_all_posts(
             message["sender"]), self.peer.loop)
 
     def handle_post(self, message):

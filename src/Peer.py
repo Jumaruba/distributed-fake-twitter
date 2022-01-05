@@ -54,7 +54,6 @@ class Peer(Node):
             self.database.insert(message)
             for follower_username in self.followers:
                 follower_info = await self.get_username_info(follower_username)
-                follower_info = json.loads(follower_info)
                 self.send_message(
                     follower_info["ip"], follower_info["port"], message)
             await self.set_user_hash_value()
@@ -66,10 +65,9 @@ class Peer(Node):
             print("Error while trying to get the timestamp of the new post!")
 
     async def follow(self, username: str, message: str):
-        user_info_json = await self.get_username_info(username)
+        user_info = await self.get_username_info(username)
 
-        if user_info_json is not None:
-            user_info = json.loads(user_info_json)
+        if user_info is not None:
             self.send_message(user_info['ip'], user_info['port'], message)
             await self.add_following(username)
             return f"Following {username}"
@@ -104,10 +102,9 @@ class Peer(Node):
         self.following.append(username)
         await self.set_user_hash_value()
 
-    async def send_previous_posts(self, follower_username):
+    async def send_all_posts(self, follower_username):
         try:
             follower_info = await self.get_username_info(follower_username)
-            follower_info_json = json.loads(follower_info)
 
             posts = self.database.get_posts(self.username)
             for post in posts:
@@ -117,8 +114,8 @@ class Peer(Node):
                     post["body"],
                     post["timestamp"]
                 )
-                self.send_message(follower_info_json["ip"],
-                                  follower_info_json["port"], message)
+                self.send_message(follower_info["ip"],
+                                  follower_info["port"], message)
         except Exception as e:
             print(e)
 
@@ -139,9 +136,12 @@ class Peer(Node):
         # Set's a value for the key self.username in the network.
         await self.server.set(self.username, json.dumps(self.build_table_value()))
 
-    async def get_username_info(self, username: str) -> str:
+    async def get_username_info(self, username: str) -> dict:
         # Get the value associated with the given username from the network.
-        return await self.server.get(username)
+        username_info = await self.server.get(username)
+        if username_info is None:
+            return None
+        return json.loads(username_info)
 
     def build_table_value(self):
         # Creates the values to the table in the kademlia.
@@ -157,15 +157,13 @@ class Peer(Node):
 
     async def retrieve_kademlia_info(self):
         user_info = await self.get_username_info(self.username)
-        user_info_json = json.loads(user_info)
-        self.followers = user_info_json["followers"]
-        self.following = user_info_json["following"]
-        self.last_message_id = user_info_json["last_message_id"]
+        self.followers = user_info["followers"]
+        self.following = user_info["following"]
+        self.last_message_id = user_info["last_message_id"]
 
     async def retrieve_missing_posts(self):
         async def sync_with_user(message, user_info):
-            user_info_json = json.loads(user_info)  
-            reader, writer = await asyncio.open_connection(user_info_json["ip"], user_info_json["port"])
+            reader, writer = await asyncio.open_connection(user_info["ip"], user_info["port"])
 
             writer.write(message.encode())
             writer.write_eof()
@@ -185,8 +183,7 @@ class Peer(Node):
                 posts = await sync_with_user(message, user_info)
             except ConnectionRefusedError:
                 # Otherwise try with all the other followers
-                user_info_json = json.loads(user_info)
-                followers_username = user_info_json["followers"]
+                followers_username = user_info["followers"]
                 for follower in followers_username:
                     follower_info = await self.get_username_info(follower) 
                     try: 
