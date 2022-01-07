@@ -169,21 +169,24 @@ class Peer(Node):
     def show_followers(self):
         builder = "== Followers ==\n"
         for i, follower in enumerate(self.info.followers):
-            builder += f"{str(i)} - {follower}\n"
+            builder += f"{i} - {follower}\n"
         print(builder)
-        return (True,"")
+        input(":")
+        return (True,None)
 
     def show_following(self):
         builder = "== Following ==\n"
         for i, following in enumerate(self.info.following):
-            builder += f"{str(i)} - {following}\n"
+            builder += f"{i} - {following}\n"
         print(builder)
-        return (True,"")
+        input(":")
+        return (True,None)
 
     def show_timeline(self):
         posts = self.database.get_all_posts()
         print(posts)
-        return (True,"")
+        input(":")
+        return (True,None)
 
     # -------------------------------------------------------------------------
     # Garbage Collector

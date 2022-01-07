@@ -15,6 +15,19 @@ class Controller:
         option = Menu.get_option(title, list(options.keys()))
         return options[option]()
 
+    def ignore(self):
+        return
+
+    def notify(self, result, error_callback):
+        status, message = result
+
+        # Check if there was an error
+        if not status:
+            print("[ERROR]", message)
+            error_callback()
+        elif message is not None:
+            print("[SUCCESS]", message)
+
     def start(self):
         self.menu_1()
         while True:
@@ -27,15 +40,8 @@ class Controller:
             "Login": self.login,
             "Exit": exit
         }
-        status, message = self.handle("Welcome", options)
-
-        # Check result
-        if not status:
-            print("[ERROR]", message)
-            exit()
-
-        print("[SUCCESS]", message)
-        self.peer.start_listening()
+        result = self.handle("Welcome", options)
+        self.notify(result, exit)
 
     def menu_2(self):
         options = {
@@ -44,14 +50,10 @@ class Controller:
             "Show followers": self.peer.show_followers,
             "Show following": self.peer.show_following,
             "Follow a user": self.follow,
-            "Delete account": self.peer.delete_account
+            "Exit": self.peer.delete_account
         }
-        status, message = self.handle("Main Menu", options)
-
-        # Check result
-        if not status:
-            print("[ERROR]", message)
-            exit()
+        result = self.handle("Main Menu", options)
+        self.notify(result, self.ignore)
 
     # -------------------------------------------------------------------------
     # Actions
