@@ -79,7 +79,7 @@ class Peer(Node):
         try:
             follower_info: KademliaInfo = await self.get_kademlia_info(follower_username)
 
-            posts = self.database.get_posts(self.username)
+            posts = self.database.get_posts(self.username, get_time())
 
             for post in posts:
                 self.send_previous_post(

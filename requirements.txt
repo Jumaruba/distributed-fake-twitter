@@ -1,0 +1,14 @@
+dataclasses==0.6
+dataclasses-json==0.5.6
+kademlia==2.2.2
+marshmallow==3.14.1
+marshmallow-enum==1.5.1
+mypy-extensions==0.4.3
+ntplib==0.4.0
+pip==20.0.2
+pkg-resources==0.0.0
+rpcudp==4.0.2
+setuptools==44.0.0
+typing-extensions==4.0.1
+typing-inspect==0.7.1
+u-msgpack-python==2.7.1

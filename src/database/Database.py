@@ -38,7 +38,8 @@ class Database:
         return self.cursor.fetchall()
 
     def create_table(self):
-        self.commit("""CREATE TABLE posts (
+        self.commit("""
+            CREATE TABLE posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             post_id INTEGER NOT NULL,
             user VARCHAR(20) NOT NULL,
@@ -56,20 +57,25 @@ class Database:
         sender = message["sender"]
         date = message["timestamp"]
         body = message["body"]
-        self.commit("""INSERT INTO posts(post_id, user, timestamp, body) 
-                        VALUES(?,?,?,?)""", [post_id, sender, date, body])
+        self.commit("""
+            INSERT INTO posts(post_id, user, timestamp, body) 
+            VALUES(?,?,?,?)
+        """, [post_id, sender, date, body])
 
     def delete(self, username, timestamp_now):
-        self.commit("""DELETE FROM posts 
-                       WHERE user != ? AND timestamp < datetime(?, ?)
-                    """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
+        self.commit("""
+            DELETE FROM posts 
+            WHERE user != ?
+            AND timestamp < datetime(?, ?)
+        """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
 
     def add_posts(self, posts):
         posts_list = json.loads(posts)
         for post in posts_list:
-            self.commit("""INSERT INTO posts(post_id, user, timestamp, body) 
-                        VALUES(?,?,?,?)
-                        """, [post["post_id"], post["user"], post["timestamp"], post["body"]])
+            self.commit("""
+                INSERT INTO posts(post_id, user, timestamp, body) 
+                VALUES(?,?,?,?)
+            """, [post["post_id"], post["user"], post["timestamp"], post["body"]])
 
     def get_all_posts(self):
         return self.fetch("""
@@ -85,13 +91,15 @@ class Database:
             WHERE user == ?
         """, [username])[0][0]
 
-    def get_posts(self, username):
+    # Usar timestamp_now se o user não puder apagar os seus próprios posts antigos, senão tirar isso
+    def get_posts(self, username, timestamp_now):
         posts = self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts
             WHERE user = ?
+            AND timestamp > datetime(?, ?)
             ORDER BY timestamp
-        """, [username])
+        """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
         positions = ["post_id", "user", "timestamp", "body"]
         return [dict(zip(positions, value)) for value in posts]
 
