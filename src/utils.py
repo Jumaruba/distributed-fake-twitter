@@ -20,3 +20,15 @@ def get_time():
         except ntplib.NTPException:
             pass
     raise ntplib.NTPException
+
+def read_ips(file_path):
+    with open(file_path) as file:
+        lines = file.readlines()
+    
+    def parse_line(line):
+        line = line.strip()
+        line = line.split()
+        line[1] = int(line[1])
+        return tuple(line)
+    
+    return list(map(parse_line, lines))

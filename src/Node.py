@@ -7,10 +7,11 @@ from kademlia.network import Server
 
 from .KademliaInfo import KademliaInfo
 from .connection import Sender
+from .utils import read_ips
 
 
 class Node:
-    def __init__(self, ip, port, b_ip, b_port):
+    def __init__(self, ip, port, bootstrap_file):
         self.set_logger()
         self.server = Server()
         self.ip = ip
@@ -20,9 +21,11 @@ class Node:
         # The program has only one event loop.
         self.loop = asyncio.get_event_loop()
 
-        self.b_node = (b_ip, b_port)
+        # Read Bootstrap nodes from file
+        self.b_nodes = read_ips(bootstrap_file)
+
         self.loop.run_until_complete(self.server.listen(self.port))
-        self.loop.run_until_complete(self.server.bootstrap([self.b_node]))
+        self.loop.run_until_complete(self.server.bootstrap(self.b_nodes))
 
     # --------------------------------------------------------------------------
     # Logger

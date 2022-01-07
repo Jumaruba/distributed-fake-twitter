@@ -3,6 +3,8 @@ from asyncio.tasks import ensure_future
 from threading import Thread
 import sys
 
+from src.bootstrap.__main__ import Bootstrap
+
 from .control import Controller
 from .Peer import Peer
 from .database import Database
@@ -11,28 +13,35 @@ from .KademliaInfo import KademliaInfo
 
 def check_args():
     # Function to check if the arguments are correct
+
+    if len(sys.argv) > 4 or len(sys.argv) < 3:
+        print("Wrong arguments."
+              "USAGE: python -m src <ip> <port> [bootstrap_file]")
+        exit()
+
+    ip = sys.argv[1]
+    bootstrap_file = 'config/default.ini'
+    if len(sys.argv) > 3:
+        bootstrap_file = sys.argv[3]
     try:
-        ip = sys.argv[1]
         port = int(sys.argv[2])
-        ip_b = sys.argv[3]
-        port_b = int(sys.argv[4])
-        return ip, port, ip_b, port_b
     except:
-        print("Wrong arguments. USAGE: python -m src <ip> <port> <bootstrap_ip> <bootstrap_port>")
-    exit()
+        print("Wrong arguments."
+              "USAGE: python -m src <ip> <port> [bootstrap_file]")
+        exit()
+    return ip, port, bootstrap_file
 
 
-def main(ip: str, port: int, ip_b: str, port_b: int):
+def main(ip: str, port: int, bootstrap_file: str):
 
-    peer = Peer(ip, port, ip_b, port_b)
+    peer = Peer(ip, port, bootstrap_file)
 
     # NOTE The listening and bootstrapping are running forever.
     # Putting this before the operation, we are initializing the kademlia server.
     Thread(target=peer.loop.run_forever, daemon=True).start()
 
-    if ip_b is not None:   
-        controller = Controller(peer)
-        controller.start()
+    controller = Controller(peer)
+    controller.start()
 
 
 if __name__ == '__main__':

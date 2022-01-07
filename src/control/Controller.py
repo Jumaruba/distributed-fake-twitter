@@ -4,24 +4,21 @@ from ..connection import Message
 from ..Peer import Peer
 from .Menu import Menu
 from ..utils import run_in_loop
-from ..consts import MAX_POST_SIZE, MAX_USERNAME_SIZE
+from ..consts import MIN_USERNAME_SIZE, MAX_USERNAME_SIZE, MAX_POST_SIZE
 
 
 class Controller:
     def __init__(self, peer: Peer) -> None:
         self.peer = peer
-    
 
     def handle(self, title, options):
-        option = Menu.get_option(title, list(options.keys())) 
-        return options[option]() 
-
+        option = Menu.get_option(title, list(options.keys()))
+        return options[option]()
 
     def start(self):
         self.menu_1()
         while True:
             self.menu_2()
-
 
     def menu_1(self):
         # NOTE, to get the results from operations task it's necessary to use function_name.result()
@@ -34,12 +31,11 @@ class Controller:
 
         # Check result
         if not status:
-            print("[ ERROR ]", message)
+            print("[ERROR]", message)
             exit()
 
-        print("[ SUCCESS ]", message)
-        self.peer.start_listening() 
-
+        print("[SUCCESS]", message)
+        self.peer.start_listening()
 
     def menu_2(self):
         options = {
@@ -48,33 +44,56 @@ class Controller:
             "Show followers": self.peer.show_followers,
             "Show following": self.peer.show_following,
             "Follow a user": self.follow,
-            "Exit": exit
+            "Delete account": self.peer.delete_account
         }
-        self.handle("Main Menu", options)
+        status, message = self.handle("Main Menu", options)
+
+        # Check result
+        if not status:
+            print("[ERROR]", message)
+            exit()
 
     # -------------------------------------------------------------------------
     # Actions
     # -------------------------------------------------------------------------
 
-    def post(self): 
+    def post(self):
         message = input("What\'s happening? ")
         if len(message) > MAX_POST_SIZE:
-            print(f"[ERROR] The post can have at maximum {MAX_POST_SIZE} characters!")
-            return
-        run_in_loop(self.peer.post(message), self.peer.loop)
-
+            return (
+                False,
+                f"The post can have at maximum {MAX_POST_SIZE} characters!"
+            )
+        if len(message) == 0:
+            return (
+                False,
+                "Was that an empty post?"
+            )
+        message = run_in_loop(self.peer.post(message), self.peer.loop)
+        return message.result()
 
     def follow(self):
         username = input("Username: ")
         message = Message.follow(self.peer.username)
 
+        if len(username) > MAX_USERNAME_SIZE or len(username) < MIN_USERNAME_SIZE:
+            return (
+                False,
+                "That's not even a valid username!"
+            )
         if username == self.peer.username:
-            print("[ERROR] You can't follow yourself!")
-        elif username not in self.peer.info.following:
-            message = run_in_loop(self.peer.follow(username, message), self.peer.loop)
-            print(message.result())
-        else:
-            print(f"[ERROR] You're already following {username}")
+            return (
+                False,
+                "You can't follow yourself!"
+            )
+        if username in self.peer.info.following:
+            return (
+                False,
+                f"You're already following {username}!"
+            )
+        message = run_in_loop(self.peer.follow(
+            username, message), self.peer.loop)
+        return message.result()
 
     # -------------------------------------------------------------------------
     # Register/Login
@@ -83,14 +102,18 @@ class Controller:
     def register(self):
         username = input("Type your username: ")
         if len(username) > MAX_USERNAME_SIZE:
-            print(f"[ERROR] The username cannot have more than {MAX_USERNAME_SIZE} characters!")
-            return
+            return (
+                False,
+                f"The username cannot have more than {MAX_USERNAME_SIZE} characters!"
+            )
+        if len(username) < MIN_USERNAME_SIZE:
+            return (
+                False,
+                f"The username needs to have at least {MIN_USERNAME_SIZE} characters!"
+            )
 
-        if username:
-            future = run_in_loop(self.peer.register(username), self.peer.loop)
-            return future.result()
-        return (False, "Empty user is not allowed!")
-
+        future = run_in_loop(self.peer.register(username), self.peer.loop)
+        return future.result()
 
     def login(self):
         username = input("Type your username: ")

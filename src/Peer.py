@@ -12,8 +12,8 @@ import asyncio
 
 class Peer(Node):
 
-    def __init__(self, ip, port, b_ip, b_port):
-        super().__init__(ip, port, b_ip, b_port)
+    def __init__(self, ip, port, bootstrap_file: str):
+        super().__init__(ip, port, bootstrap_file)
         self.info = KademliaInfo(ip, port, [], [], 0)
 
     # -------------------------------------------------------------------------
@@ -49,6 +49,11 @@ class Peer(Node):
         self.database = Database(self.username)
         self.start_garbage_collection()
 
+    def delete_account(self):
+        self.server.stop()
+        print("Account deleted. Thank you for your business!")
+        exit()
+
     # -------------------------------------------------------------------------
     # Post functions
     # -------------------------------------------------------------------------
@@ -63,14 +68,14 @@ class Peer(Node):
                 self.send_message(
                     follower_info.ip, follower_info.port, message)
             await self.set_kademlia_info(self.username, self.info)
-            print("Post created!")
+            return (True, "Post created!")
         except NTPException:
             # Not possible to create message when there's an NTP exception.
             # So, it's necessary to recover the previous last message id.
             self.last_post_id -= 1
-            print("Error while trying to get the timestamp of the new post!")
+            return (False, "Could not get the timestamp of the new post!")
         except Exception as e:
-            print("[ERROR]", e)
+            return (False, e)
 
     async def send_all_previous_posts(self, follower_username) -> None:
         """
@@ -130,7 +135,8 @@ class Peer(Node):
                         continue
                     break
                 else:
-                    print("[ERROR] No peer could provide the posts")
+                    print("[WARNING] No peer could provide the posts of this user")
+                    return
             print(posts)
             self.database.add_posts(posts)
 
@@ -144,9 +150,9 @@ class Peer(Node):
         if user_info is not None:
             self.send_message(user_info.ip, user_info.port, message)
             await self.add_following(username)
-            return f"Following {username}"
+            return (True, f"Following {username}")
         else:
-            return f"The user {username} does not exists"
+            return (False, f"The user {username} does not exists")
 
     async def add_follower(self, username: str) -> None:
         self.info.followers.append(username)
@@ -165,16 +171,19 @@ class Peer(Node):
         for i, follower in enumerate(self.info.followers):
             builder += f"{str(i)} - {follower}\n"
         print(builder)
+        return (True,"")
 
     def show_following(self):
         builder = "== Following ==\n"
         for i, following in enumerate(self.info.following):
             builder += f"{str(i)} - {following}\n"
         print(builder)
+        return (True,"")
 
     def show_timeline(self):
         posts = self.database.get_all_posts()
         print(posts)
+        return (True,"")
 
     # -------------------------------------------------------------------------
     # Garbage Collector
