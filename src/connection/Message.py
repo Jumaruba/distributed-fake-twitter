@@ -21,6 +21,10 @@ class Message:
         return Message.new(sender, "follow", {})
 
     @staticmethod
+    def unfollow(sender):
+        return Message.new(sender, "unfollow", {})
+
+    @staticmethod
     def post(post_id, sender, body, timestamp=None):
         args = {
             "post_id": post_id,

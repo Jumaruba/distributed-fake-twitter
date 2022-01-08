@@ -36,9 +36,8 @@ class Peer(Node):
         if user_info is None:
             return (False, "Username not found!")
         self.username = username
+        self.info = user_info
         self.init_database()
-
-        self.info = await self.get_kademlia_info(self.username)
         await self.retrieve_missing_posts()
         return (True, "Logged with success!")
 
@@ -152,7 +151,17 @@ class Peer(Node):
             await self.add_following(username)
             return (True, f"Following {username}")
         else:
-            return (False, f"The user {username} does not exists")
+            return (False, f"The user {username} does not exist")
+
+    async def unfollow(self, username: str, message: str):
+        user_info = await self.get_kademlia_info(username)
+
+        if user_info is not None:
+            self.send_message(user_info.ip, user_info.port, message)
+            await self.remove_following(username)
+            return (True, f"Unfollowing {username}")
+        else:
+            return (False, f"The user {username} does not exist")
 
     async def add_follower(self, username: str) -> None:
         self.info.followers.append(username)
@@ -160,6 +169,14 @@ class Peer(Node):
 
     async def add_following(self, username: str) -> None:
         self.info.following.append(username)
+        await self.set_kademlia_info(self.username, self.info)
+
+    async def remove_follower(self, username: str) -> None:
+        self.info.followers.remove(username)
+        await self.set_kademlia_info(self.username, self.info)
+
+    async def remove_following(self, username: str) -> None:
+        self.info.following.remove(username)
         await self.set_kademlia_info(self.username, self.info)
 
     # -------------------------------------------------------------------------
@@ -172,7 +189,7 @@ class Peer(Node):
             builder += f"{i} - {follower}\n"
         print(builder)
         input(":")
-        return (True,None)
+        return (True, None)
 
     def show_following(self):
         builder = "== Following ==\n"
@@ -180,13 +197,13 @@ class Peer(Node):
             builder += f"{i} - {following}\n"
         print(builder)
         input(":")
-        return (True,None)
+        return (True, None)
 
     def show_timeline(self):
         posts = self.database.get_all_posts()
         print(posts)
         input(":")
-        return (True,None)
+        return (True, None)
 
     # -------------------------------------------------------------------------
     # Garbage Collector

@@ -50,6 +50,7 @@ class Controller:
             "Show followers": self.peer.show_followers,
             "Show following": self.peer.show_following,
             "Follow a user": self.follow,
+            "Unfollow a user": self.unfollow,
             "Exit": self.peer.delete_account
         }
         result = self.handle("Main Menu", options)
@@ -76,8 +77,6 @@ class Controller:
 
     def follow(self):
         username = input("Username: ")
-        message = Message.follow(self.peer.username)
-
         if len(username) > MAX_USERNAME_SIZE or len(username) < MIN_USERNAME_SIZE:
             return (
                 False,
@@ -93,9 +92,30 @@ class Controller:
                 False,
                 f"You're already following {username}!"
             )
-        message = run_in_loop(self.peer.follow(
+
+        message = Message.follow(self.peer.username)
+        future = run_in_loop(self.peer.follow(
             username, message), self.peer.loop)
-        return message.result()
+        return future.result()
+
+    def unfollow(self):
+        username = input("Username: ")
+
+        if len(username) > MAX_USERNAME_SIZE or len(username) < MIN_USERNAME_SIZE:
+            return (
+                False,
+                "That's not even a valid username!"
+            )
+        if username not in self.peer.info.following:
+            return (
+                False,
+                f"You're not following {username}!"
+            )
+
+        message = Message.unfollow(self.peer.username)
+        future = run_in_loop(self.peer.unfollow(
+            username, message), self.peer.loop)
+        return future.result()
 
     # -------------------------------------------------------------------------
     # Register/Login

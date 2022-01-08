@@ -32,6 +32,8 @@ class Listener(Thread):
             operation = Message.get_operation(message)
             if operation == "follow":
                 self.handle_follower(message)
+            elif operation == "unfollow":
+                self.handle_unfollow(message)
             elif operation == "post":
                 self.handle_post(message)
             elif operation == "sync_posts":
@@ -46,6 +48,11 @@ class Listener(Thread):
         run_in_loop(self.peer.add_follower(message["sender"]), self.peer.loop)
         run_in_loop(self.peer.send_all_previous_posts(message["sender"]),
                     self.peer.loop)
+
+    def handle_unfollow(self, message):
+        print("This user unfollowed you:", message['sender'])
+        run_in_loop(self.peer.remove_follower(
+            message["sender"]), self.peer.loop)
 
     def handle_post(self, message):
         """
