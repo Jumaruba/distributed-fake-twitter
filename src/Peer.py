@@ -201,7 +201,20 @@ class Peer(Node):
 
     def show_timeline(self):
         posts = self.database.get_all_posts()
-        print(posts)
+
+        def parse_post(post):
+            _, post_creator, post_time, post_content = post
+            post_time = post_time.split()
+            post_day = post_time[0]
+            post_hour = post_time[1]
+            return post_creator, post_day, post_hour, post_content
+
+        posts = map(parse_post, posts)
+
+        for post_creator, _, post_hour, post_content in posts:
+            print("[" + post_hour + "]", end=" ")
+            print("<" + post_creator + ">", end=" ")
+            print(post_content)
         input(":")
         return (True, None)
 
