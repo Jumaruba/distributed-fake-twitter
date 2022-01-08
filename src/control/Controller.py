@@ -42,6 +42,7 @@ class Controller:
         }
         result = self.handle("Welcome", options)
         self.notify(result, exit)
+        self.peer.start_listening()
 
     def menu_2(self):
         options = {
@@ -51,7 +52,7 @@ class Controller:
             "Show following": self.peer.show_following,
             "Follow a user": self.follow,
             "Unfollow a user": self.unfollow,
-            "Exit": self.peer.delete_account
+            "Delete account": self.peer.delete_account
         }
         result = self.handle("Main Menu", options)
         self.notify(result, self.ignore)
