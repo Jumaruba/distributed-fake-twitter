@@ -140,26 +140,29 @@ class Peer(Node):
             print(posts)
             self.database.add_posts(posts)
 
-    async def repost(self, post_id: int):         
-        post = self.database.get_post(post_id)
-        #self.database.update_post()     # TODO 
-        post['operation'] = 'post'
-        # TODO delete later the print
-        post_json = json.dumps(post)
-        try: 
+    async def repost(self, post_id: int):  
+        
+        try:   
+            # Update timestamp and id of the old post
+            self.database.update_post(post_id, self.username, get_time(), self.info.new_post_id) 
+            post = self.database.get_post(self.info.last_post_id) 
+            post['operation'] = 'post'
+            post_json = json.dumps(post)
+
+            # Resend post to followers
             for follower_username in self.info.followers:
                 follower_info = await self.get_kademlia_info(follower_username)
                 self.send_message(
                         follower_info.ip, follower_info.port, post_json)
+            
+            # Update Last Post ID
             await self.set_kademlia_info(self.username, self.info)
-            return (True, "")
+            return (True, "Message reposted with success")
+        except NTPException:
+            self.info.last_post_id -= 1
+            return (False, "Could not get the timestamp of the new post!")
         except Exception as e:
-            # TODO delete this message later
-            print(e)
-            print("Not possible to send message")
-        
-
-        return (True, "Message reposted with success")
+            return (False, e)
 
     # -------------------------------------------------------------------------
     # Follow functions
@@ -266,16 +269,20 @@ class Peer(Node):
         while True:
             post_id = input("Which post would you like to reshare (id or q to exit)?:")
             if post_id == "q": 
-                return (False, "")
+                return (False, "No post was selected to reshare")  
+            # elif post_id == "": 
+            #    print("You should provide an input")
+            #    continue
             try:
                 option = int(post_id)
+                print(f"option {option}")
                 has_post = self.database.has_post(option, self.username) 
                 if not has_post:
                     print(f"Post {option} does not exists. Try again...")
                     continue
+                return (True, option)
             except ValueError:
-                print(f"Please select a valid option.")
-            return (True, option)
+                print(f"Please select a valid option.") 
 
     # -------------------------------------------------------------------------
     # Garbage Collector

@@ -60,51 +60,6 @@ class Database:
             VALUES(?,?,?,?)
         """, [post_id, sender, date, body])
 
-    def insert_post(self, message: str):
-        message = json.loads(message)
-        post_id = message["post_id"]
-        sender = message["sender"]
-        date = message["timestamp"]
-        body = message["body"]
-        
-        print("INSERT POST DATABASE")
-        self.cursor.execute("BEGIN")
-        try:
-            if self.has_post(post_id, sender):
-                print("HAS POST - UPDATE")
-                # Update the post.
-                self.cursor.execute("""
-                UPDATE posts
-                SET timestamp = ?
-                WHERE post_id = ? AND user = ?
-            """, [date, post_id, sender])                  
-            else:
-                print("NEW POST")
-                # Insert the post case.
-                self.execute("""
-                    INSERT INTO posts(post_id, user, timestamp, body) 
-                    VALUES(?,?,?,?)
-                """, [post_id, sender, date, body]) 
-            self.connection.commit()
-        except sqlite3.Error:
-            print("Error inserting post!")
-            self.connection.rollback()
-
-
-    def has_post(self, post_id, user):
-        post = self.fetch("""
-            SELECT post_id 
-            FROM posts 
-            WHERE post_id=? AND user=?
-            """, [post_id, user]) 
-        return len(post) != 0 
-
-    def delete(self, username, timestamp_now):
-        self.execute("""
-            DELETE FROM posts 
-            WHERE user != ?
-            AND timestamp < datetime(?, ?)
-        """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
 
     def add_posts(self, posts):
         posts_list = json.loads(posts)
@@ -113,6 +68,32 @@ class Database:
                 INSERT INTO posts(post_id, user, timestamp, body) 
                 VALUES(?,?,?,?)
             """, [post["post_id"], post["user"], post["timestamp"], post["body"]])
+
+
+    def has_post(self, post_id, username):
+        post = self.fetch("""
+            SELECT post_id 
+            FROM posts 
+            WHERE post_id=? AND user=?
+            """, [post_id, username]) 
+        return len(post) != 0 
+
+    
+    def update_post(self, post_id, username, new_timestamp, new_post_id):
+        self.cursor.execute("""
+                UPDATE posts
+                SET timestamp = ?, post_id = ? 
+                WHERE post_id = ? AND user = ?
+            """, [new_timestamp, new_post_id, post_id, username])    
+
+
+    def delete(self, username, timestamp_now):
+        self.execute("""
+            DELETE FROM posts 
+            WHERE user != ?
+            AND timestamp < datetime(?, ?)
+        """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
+
 
     def get_all_posts(self):
         return self.fetch("""

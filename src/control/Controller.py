@@ -78,11 +78,11 @@ class Controller:
         return message.result()
 
     def repost(self):
-        result, post_id = self.peer.select_post()
-        if result:
-            message = run_in_loop(self.peer.repost(post_id), self.peer.loop)
+        result = self.peer.select_post()
+        if result[0]:
+            message = run_in_loop(self.peer.repost(result[1]), self.peer.loop)
             return message.result()
-        return (False, "")
+        return (False, result[1])
 
     def follow(self):
         username = input("Username: ")
