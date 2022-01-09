@@ -78,11 +78,16 @@ class Controller:
         return message.result()
 
     def repost(self):
-        result = self.peer.select_post()
-        if result[0]:
-            message = run_in_loop(self.peer.repost(result[1]), self.peer.loop)
+        status, content = self.peer.select_post()
+
+        if status and (content is None):
+            return (True, "Exited repost option")
+
+        if status:
+            message = run_in_loop(self.peer.repost(content), self.peer.loop)
             return message.result()
-        return (False, result[1])
+            
+        return (False, content)
 
     def follow(self):
         username = input("Username: ")

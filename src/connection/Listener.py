@@ -43,31 +43,31 @@ class Listener(Thread):
 
         writer.close()
 
-    def handle_follower(self, message):
-        print("New follower:", message["sender"])
-        run_in_loop(self.peer.add_follower(message["sender"]), self.peer.loop)
-        run_in_loop(self.peer.send_all_previous_posts(message["sender"]),
+    def handle_follower(self, message) -> None:
+        print("New follower:", message["user"])
+        run_in_loop(self.peer.add_follower(message["user"]), self.peer.loop)
+        run_in_loop(self.peer.send_all_previous_posts(message["user"]),
                     self.peer.loop)
 
-    def handle_unfollow(self, message):
-        print("This user unfollowed you:", message['sender'])
+    def handle_unfollow(self, message) -> None:
+        print("This user unfollowed you:", message["user"])
         run_in_loop(self.peer.remove_follower(
-            message["sender"]), self.peer.loop)
+            message["user"]), self.peer.loop)
 
-    def handle_post(self, message):
+    def handle_post(self, message) -> None:
         """
         Handles the reception of a post from a user that this peer is following.
         """
-        if message["sender"] in self.peer.info.following:
-            self.peer.database.insert(json.dumps(message))
+        if message["user"] in self.peer.info.following:
+            self.peer.database.insert_post(message)
 
-    async def handle_sync_posts(self, message, writer):
-
+    async def handle_sync_posts(self, message, writer) -> None:
+        """
+        When the user is back online it requests the posts it losts while offline
+        """
         posts = json.dumps(self.peer.database.get_posts_after(
             message["username"],
             message["last_post_id"]))
-        # TODO: delete later this print
-        print(posts)
         writer.write(posts.encode())
         writer.write_eof()
         await writer.drain()

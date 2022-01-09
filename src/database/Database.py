@@ -1,7 +1,8 @@
 import sqlite3
 import json
-from ..consts import DATABASE_FILE_PATH, POST_LIFETIME
+from ..consts import DATABASE_FILE_PATH, GARBAGE_COLLECTOR_FREQUENCY, POST_LIFETIME
 from os.path import exists
+from ..utils import get_post_args, post_tuple_to_dict, get_time
 
 
 class Database:
@@ -27,6 +28,7 @@ class Database:
             self.cursor.execute(command)
         else:
             self.cursor.execute(command, arguments)
+        self.connection.commit()
 
     def fetch(self, command, arguments=None):
         if arguments is None:
@@ -34,6 +36,13 @@ class Database:
         else:
             self.cursor.execute(command, arguments)
         return self.cursor.fetchall()
+
+    def fetch_one(self, command, arguments=None):
+        if arguments is None:
+            self.cursor.execute(command)
+        else:
+            self.cursor.execute(command, arguments)
+        return self.cursor.fetchone()
 
     def create_table(self):
         self.execute("""
@@ -46,38 +55,23 @@ class Database:
         );""")
 
     # -------------------------------------------------------------------------
-    # Specific functions for the context
+    # Insert functions
     # -------------------------------------------------------------------------
 
-    def insert(self, message: str):
-        message = json.loads(message)
-        post_id = message["post_id"]
-        sender = message["sender"]
-        date = message["timestamp"]
-        body = message["body"]
+    def insert_post(self, post):
+        post_id, user, timestamp, body = get_post_args(post)
         self.execute("""
             INSERT INTO posts(post_id, user, timestamp, body) 
             VALUES(?,?,?,?)
-        """, [post_id, sender, date, body])
+        """, [post_id, user, timestamp, body])
 
-
-    def add_posts(self, posts):
-        posts_list = json.loads(posts)
+    def insert_posts(self, posts_list):
         for post in posts_list:
-            self.execute("""
-                INSERT INTO posts(post_id, user, timestamp, body) 
-                VALUES(?,?,?,?)
-            """, [post["post_id"], post["user"], post["timestamp"], post["body"]])
+            self.insert_post(post)
 
-
-    def has_post(self, post_id, username):
-        post = self.fetch("""
-            SELECT post_id 
-            FROM posts 
-            WHERE post_id=? AND user=?
-            """, [post_id, username]) 
-        return len(post) != 0 
-
+    # -------------------------------------------------------------------------
+    # Update functions
+    # -------------------------------------------------------------------------
     
     def update_post(self, post_id, username, new_timestamp, new_post_id):
         self.cursor.execute("""
@@ -86,40 +80,51 @@ class Database:
                 WHERE post_id = ? AND user = ?
             """, [new_timestamp, new_post_id, post_id, username])    
 
+    # -------------------------------------------------------------------------
+    # Delete functions
+    # -------------------------------------------------------------------------
 
-    def delete(self, username, timestamp_now):
+    def delete_post(self, username):
+        timestamp_now = get_time()
         self.execute("""
             DELETE FROM posts 
             WHERE user != ?
             AND timestamp < datetime(?, ?)
         """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
 
+    # -------------------------------------------------------------------------
+    # Get functions
+    # ------------------------------------------------------------------------- 
 
-    def get_all_posts(self):
+    def get_timeline_posts(self):
+        """
+        Get all the posts ordered by timestamp
+        """
         return self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts
             ORDER BY timestamp
         """)
 
-    def get_old_posts(self, username, timestamp_now): 
+    def get_expired_posts(self, username): 
+        """
+        Get all the posts from the user that already expired the lifetime.
+        """
+        timestamp_now = get_time()
+
         return self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts 
             WHERE user = ?
             AND timestamp < datetime(?, ?)
             ORDER BY timestamp
-        """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
-
-    # TODO change to last post
-    def last_message(self, username):
-        return self.fetch("""
-            SELECT MAX(post_id)
-            FROM posts
-            WHERE user == ?
-        """, [username])[0][0]
-
-    def get_posts(self, username, timestamp_now):
+        """, [username, timestamp_now, f"-{POST_LIFETIME + GARBAGE_COLLECTOR_FREQUENCY} seconds"])
+    
+    def get_not_expired_posts(self, username):
+        """
+        Get posts from a specific user that are still within the lifetime.
+        """
+        timestamp_now = get_time()
         posts = self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts
@@ -127,28 +132,54 @@ class Database:
             AND timestamp > datetime(?, ?)
             ORDER BY timestamp
         """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
-        positions = ["post_id", "user", "timestamp", "body"]
-        return [dict(zip(positions, value)) for value in posts]
 
-    def get_post(self, post_id):
-        post =  self.fetch("""
-            SELECT post_id, user, timestamp, body
-            FROM posts
-            WHERE post_id = ?
-        """, [post_id])[0]
-        positions = ["post_id", "sender", "timestamp", "body"]  
-        dictionary = dict(zip(positions, post))
-        print(dictionary)
-        return dictionary
-
-
+        return [post_tuple_to_dict(post) for post in posts]
+    
     def get_posts_after(self, username, last_post_id):
+        """
+        Get posts from a specific user that were made after the post with the id `last_post_id` and that have not expired.
+        Used to send posts that were created while a user was offline.
+        """
+        timestamp_now = get_time()
         posts = self.fetch("""
             SELECT post_id, user, timestamp, body
             FROM posts
             WHERE user = ?
             AND post_id > ?
+            AND timestamp > datetime(?, ?)
             ORDER BY timestamp
-        """, [username, last_post_id])
-        positions = ["post_id", "user", "timestamp", "body"]
-        return [dict(zip(positions, value)) for value in posts]
+        """, [username, last_post_id, timestamp_now, f"-{POST_LIFETIME} seconds"])
+
+        return [post_tuple_to_dict(post) for post in posts] 
+
+    def get_last_post(self, username):
+        """
+        Get the last post from a user that is stored in the database.
+        """
+
+        max_id = self.fetch_one("""
+            SELECT MAX(post_id)
+            FROM posts
+            WHERE user == ?
+        """, [username])
+ 
+        if max_id[0] is None:
+            return -1 
+
+        return max_id[0]
+
+    def get_post(self, username, post_id):
+        """
+        Get post with a specific id
+        """
+
+        post =  self.fetch_one("""
+            SELECT post_id, user, timestamp, body
+            FROM posts
+            WHERE post_id = ? AND user = ?
+        """, [post_id, username])
+        print(f"POST :: {post}")
+
+        if post is None:
+            return None 
+        return post_tuple_to_dict(post)
