@@ -93,10 +93,9 @@ class Controller:
                 False,
                 f"You're already following {username}!"
             )
-
         message = Message.follow(self.peer.username)
         future = run_in_loop(self.peer.follow(
-            username, message), self.peer.loop)
+                username, message), self.peer.loop)
         return future.result()
 
     def unfollow(self):

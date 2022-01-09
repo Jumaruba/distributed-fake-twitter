@@ -15,9 +15,10 @@ def get_time():
     ntpclient = ntplib.NTPClient()
     for _ in range(NTP_MAX_TRIES):
         try:
-            response = ntpclient.request('pool.ntp.org', version=3)
+            response = ntpclient.request('pool.ntp.org')
             return strftime('%Y-%m-%d %H:%M:%S', localtime(response.tx_time))
         except ntplib.NTPException:
+            print("NTP try failed")
             pass
     raise ntplib.NTPException
 

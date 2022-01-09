@@ -1,5 +1,5 @@
 import json
-from .connection import Listener, Message
+from .connection import Listener, Message, Sender
 from .consts import GARBAGE_COLLECTOR_FREQUENCY
 from .database import Database
 from .KademliaInfo import KademliaInfo
@@ -71,7 +71,7 @@ class Peer(Node):
         except NTPException:
             # Not possible to create message when there's an NTP exception.
             # So, it's necessary to recover the previous last message id.
-            self.last_post_id -= 1
+            self.info.last_post_id -= 1
             return (False, "Could not get the timestamp of the new post!")
         except Exception as e:
             return (False, e)
@@ -147,11 +147,14 @@ class Peer(Node):
         user_info = await self.get_kademlia_info(username)
 
         if user_info is not None:
-            self.send_message(user_info.ip, user_info.port, message)
+            messageSent = await Sender.send_message(user_info.ip, user_info.port, message)  
+            # The message could not be send, because the user is offline and no one has its information stored.
+            if not messageSent:
+                return (False, f"You can't follow {username} right now. Lo siento...")
             await self.add_following(username)
             return (True, f"Following {username}")
         else:
-            return (False, f"The user {username} does not exist")
+            return (False, f"The user {username} does not exist") 
 
     async def unfollow(self, username: str, message: str):
         user_info = await self.get_kademlia_info(username)
