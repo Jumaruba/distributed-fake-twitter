@@ -59,7 +59,7 @@ class Listener(Thread):
         Handles the reception of a post from a user that this peer is following.
         """
         if message["sender"] in self.peer.info.following:
-            self.peer.database.insert(json.dumps(message))
+            self.peer.database.insert_post(json.dumps(message))
 
     async def handle_sync_posts(self, message, writer):
 

@@ -13,22 +13,20 @@ class Database:
         self.database_file_path = f"{DATABASE_FILE_PATH}/{username}.db"
         exists_db = exists(self.database_file_path)
 
-        self.connection = sqlite3.connect(
-            self.database_file_path, check_same_thread=False)
+        self.connection = sqlite3.connect(self.database_file_path, check_same_thread=False, isolation_level=None)
         self.cursor = self.connection.cursor()
         if not exists_db:
             self.create_table()
 
     # -------------------------------------------------------------------------
     # SQL interaction
-    # -------------------------------------------------------------------------
+    # ------------------------------------------------------------------------- 
 
-    def commit(self, command, arguments=None):
+    def execute(self, command, arguments=None):
         if arguments is None:
             self.cursor.execute(command)
         else:
             self.cursor.execute(command, arguments)
-        self.connection.commit()
 
     def fetch(self, command, arguments=None):
         if arguments is None:
@@ -38,7 +36,7 @@ class Database:
         return self.cursor.fetchall()
 
     def create_table(self):
-        self.commit("""
+        self.execute("""
             CREATE TABLE posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             post_id INTEGER NOT NULL,
@@ -57,13 +55,52 @@ class Database:
         sender = message["sender"]
         date = message["timestamp"]
         body = message["body"]
-        self.commit("""
+        self.execute("""
             INSERT INTO posts(post_id, user, timestamp, body) 
             VALUES(?,?,?,?)
         """, [post_id, sender, date, body])
 
+    def insert_post(self, message: str):
+        message = json.loads(message)
+        post_id = message["post_id"]
+        sender = message["sender"]
+        date = message["timestamp"]
+        body = message["body"]
+        
+        print("INSERT POST DATABASE")
+        self.cursor.execute("BEGIN")
+        try:
+            if self.has_post(post_id, sender):
+                print("HAS POST - UPDATE")
+                # Update the post.
+                self.cursor.execute("""
+                UPDATE posts
+                SET timestamp = ?
+                WHERE post_id = ? AND user = ?
+            """, [date, post_id, sender])                  
+            else:
+                print("NEW POST")
+                # Insert the post case.
+                self.execute("""
+                    INSERT INTO posts(post_id, user, timestamp, body) 
+                    VALUES(?,?,?,?)
+                """, [post_id, sender, date, body]) 
+            self.connection.commit()
+        except sqlite3.Error:
+            print("Error inserting post!")
+            self.connection.rollback()
+
+
+    def has_post(self, post_id, user):
+        post = self.fetch("""
+            SELECT post_id 
+            FROM posts 
+            WHERE post_id=? AND user=?
+            """, [post_id, user]) 
+        return len(post) != 0 
+
     def delete(self, username, timestamp_now):
-        self.commit("""
+        self.execute("""
             DELETE FROM posts 
             WHERE user != ?
             AND timestamp < datetime(?, ?)
@@ -72,7 +109,7 @@ class Database:
     def add_posts(self, posts):
         posts_list = json.loads(posts)
         for post in posts_list:
-            self.commit("""
+            self.execute("""
                 INSERT INTO posts(post_id, user, timestamp, body) 
                 VALUES(?,?,?,?)
             """, [post["post_id"], post["user"], post["timestamp"], post["body"]])
@@ -84,6 +121,16 @@ class Database:
             ORDER BY timestamp
         """)
 
+    def get_old_posts(self, username, timestamp_now): 
+        return self.fetch("""
+            SELECT post_id, user, timestamp, body
+            FROM posts 
+            WHERE user = ?
+            AND timestamp < datetime(?, ?)
+            ORDER BY timestamp
+        """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
+
+    # TODO change to last post
     def last_message(self, username):
         return self.fetch("""
             SELECT MAX(post_id)
@@ -91,7 +138,6 @@ class Database:
             WHERE user == ?
         """, [username])[0][0]
 
-    # Usar timestamp_now se o user não puder apagar os seus próprios posts antigos, senão tirar isso
     def get_posts(self, username, timestamp_now):
         posts = self.fetch("""
             SELECT post_id, user, timestamp, body
@@ -102,6 +148,18 @@ class Database:
         """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
         positions = ["post_id", "user", "timestamp", "body"]
         return [dict(zip(positions, value)) for value in posts]
+
+    def get_post(self, post_id):
+        post =  self.fetch("""
+            SELECT post_id, user, timestamp, body
+            FROM posts
+            WHERE post_id = ?
+        """, [post_id])[0]
+        positions = ["post_id", "sender", "timestamp", "body"]  
+        dictionary = dict(zip(positions, post))
+        print(dictionary)
+        return dictionary
+
 
     def get_posts_after(self, username, last_post_id):
         posts = self.fetch("""

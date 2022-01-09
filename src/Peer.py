@@ -6,6 +6,7 @@ from .KademliaInfo import KademliaInfo
 from .Node import Node
 from .utils import get_time
 from ntplib import NTPException
+import json 
 import threading
 import asyncio
 
@@ -48,9 +49,9 @@ class Peer(Node):
         self.database = Database(self.username)
         self.start_garbage_collection()
 
-    def delete_account(self):
+    def logout(self):
         self.server.stop()
-        print("Account deleted. Thank you for your business!")
+        print("Thank you for your business!")
         exit()
 
     # -------------------------------------------------------------------------
@@ -139,6 +140,27 @@ class Peer(Node):
             print(posts)
             self.database.add_posts(posts)
 
+    async def repost(self, post_id: int):         
+        post = self.database.get_post(post_id)
+        #self.database.update_post()     # TODO 
+        post['operation'] = 'post'
+        # TODO delete later the print
+        post_json = json.dumps(post)
+        try: 
+            for follower_username in self.info.followers:
+                follower_info = await self.get_kademlia_info(follower_username)
+                self.send_message(
+                        follower_info.ip, follower_info.port, post_json)
+            await self.set_kademlia_info(self.username, self.info)
+            return (True, "")
+        except Exception as e:
+            # TODO delete this message later
+            print(e)
+            print("Not possible to send message")
+        
+
+        return (True, "Message reposted with success")
+
     # -------------------------------------------------------------------------
     # Follow functions
     # -------------------------------------------------------------------------
@@ -204,7 +226,7 @@ class Peer(Node):
 
     def show_timeline(self):
         posts = self.database.get_all_posts()
-
+        
         def parse_post(post):
             _, post_creator, post_time, post_content = post
             post_time = post_time.split()
@@ -218,8 +240,42 @@ class Peer(Node):
             print("[" + post_hour + "]", end=" ")
             print("<" + post_creator + ">", end=" ")
             print(post_content)
+            
         input(":")
         return (True, None)
+
+    # TODO refactor urgente
+    def select_post(self):
+        posts = self.database.get_old_posts(self.username, get_time())   
+        
+        def parse_post(post):
+            post_id, post_creator, post_time, post_content = post 
+            post_time = post_time.split()
+            post_day = post_time[0]
+            post_hour = post_time[1]
+            return post_id, post_creator, post_day, post_hour, post_content
+
+        posts = map(parse_post, posts)
+
+        for post_id, post_creator, _, post_hour, post_content in posts:
+            print("#" + str(post_id), end= " ")
+            print("[" + post_hour + "]", end=" ")
+            print("<" + post_creator + ">", end=" ")
+            print(post_content)
+
+        while True:
+            post_id = input("Which post would you like to reshare (id or q to exit)?:")
+            if post_id == "q": 
+                return (False, "")
+            try:
+                option = int(post_id)
+                has_post = self.database.has_post(option, self.username) 
+                if not has_post:
+                    print(f"Post {option} does not exists. Try again...")
+                    continue
+            except ValueError:
+                print(f"Please select a valid option.")
+            return (True, option)
 
     # -------------------------------------------------------------------------
     # Garbage Collector

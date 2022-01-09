@@ -52,7 +52,8 @@ class Controller:
             "Show following": self.peer.show_following,
             "Follow a user": self.follow,
             "Unfollow a user": self.unfollow,
-            "Delete account": self.peer.delete_account
+            "Repost from Storage": self.repost,
+            "Logout": self.peer.logout
         }
         result = self.handle("Main Menu", options)
         self.notify(result, self.ignore)
@@ -75,6 +76,13 @@ class Controller:
             )
         message = run_in_loop(self.peer.post(message), self.peer.loop)
         return message.result()
+
+    def repost(self):
+        result, post_id = self.peer.select_post()
+        if result:
+            message = run_in_loop(self.peer.repost(post_id), self.peer.loop)
+            return message.result()
+        return (False, "")
 
     def follow(self):
         username = input("Username: ")
