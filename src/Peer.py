@@ -23,7 +23,6 @@ class Peer(Node):
 
     async def register(self, username):
         previous_user_info = await self.get_kademlia_info(username)
-        print(self.info)
         if previous_user_info is None:
             self.username = username
             await self.set_kademlia_info(self.username, self.info)
@@ -108,6 +107,7 @@ class Peer(Node):
             posts = self.database.get_not_expired_posts(self.username)
 
             for post in posts:
+                # TODO: remove this print
                 print("POST = ", post)
                 self.send_previous_post(
                     post, follower_info.ip,
@@ -159,8 +159,8 @@ class Peer(Node):
                 else:
                     print("[WARNING] No peer could provide the posts of this user")
                     return
-            print(posts)
             posts_list = json.loads(posts.decode())
+            # TODO: remove this print
             print(posts_list)
             self.database.insert_posts(posts_list)
 

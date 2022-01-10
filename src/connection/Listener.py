@@ -20,6 +20,7 @@ class Listener(Thread):
     # -------------------------------------------------------------------------
 
     async def handle_request(self, reader, writer):
+        # TODO: delete print in the future.
         print("Received request")
 
         line = await reader.read(-1)
@@ -44,12 +45,14 @@ class Listener(Thread):
         writer.close()
 
     def handle_follower(self, message) -> None:
+        # TODO: delete print in the future?
         print("New follower:", message["user"])
         run_in_loop(self.peer.add_follower(message["user"]), self.peer.loop)
         run_in_loop(self.peer.send_all_previous_posts(message["user"]),
                     self.peer.loop)
 
     def handle_unfollow(self, message) -> None:
+        # TODO: delete print in the future?
         print("This user unfollowed you:", message["user"])
         run_in_loop(self.peer.remove_follower(
             message["user"]), self.peer.loop)
