@@ -4,15 +4,14 @@ import ntplib
 from .consts import NTP_MAX_TRIES
 
 
-NTPCLIENT = ntplib.NTPClient()
-
-
 def run_in_loop(function, loop):
     return asyncio.run_coroutine_threadsafe(function, loop)
 
 
+# TODO: understand why NTP keeps failing all the time
 def get_time():
     ntpclient = ntplib.NTPClient()
+
     for _ in range(NTP_MAX_TRIES):
         try:
             response = ntpclient.request('pool.ntp.org')
@@ -20,7 +19,8 @@ def get_time():
         except ntplib.NTPException:
             print("NTP try failed")
             pass
-    raise ntplib.NTPException
+    raise ntplib.NTPException 
+
 
 def read_ips(file_path):
     with open(file_path) as file:
@@ -32,4 +32,29 @@ def read_ips(file_path):
         line[1] = int(line[1])
         return tuple(line)
     
-    return list(map(parse_line, lines))
+    return list(map(parse_line, lines)) 
+
+# -------------------------------------------------------------------------
+# Post utils
+# -------------------------------------------------------------------------
+
+def get_post_args(post): 
+    post_id = post["post_id"]
+    user = post["user"]
+    date = post["timestamp"]
+    body = post["body"]
+    return [post_id, user, date, body]
+
+def get_post_fieldnames():
+    return ["post_id", "user", "timestamp", "body"]  
+
+def post_tuple_to_dict(post):
+    positions = get_post_fieldnames()
+    return dict(zip(positions, post))
+
+def parse_post(post):
+    post_id, post_creator, post_time, post_content = post
+    post_time = post_time.split()
+    post_day = post_time[0]
+    post_hour = post_time[1]
+    return post_id, post_creator, post_day, post_hour, post_content
