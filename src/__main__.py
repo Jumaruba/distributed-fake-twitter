@@ -1,15 +1,9 @@
-import asyncio
-from asyncio.tasks import ensure_future
 from threading import Thread
 import sys
 
-from src.bootstrap.__main__ import Bootstrap
 
 from .control import Controller
 from .Peer import Peer
-from .database import Database
-from .KademliaInfo import KademliaInfo
-
 
 def check_args():
     # Function to check if the arguments are correct

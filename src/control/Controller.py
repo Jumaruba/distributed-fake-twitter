@@ -41,8 +41,9 @@ class Controller:
             "Exit": exit
         }
         result = self.handle("Welcome", options)
-        self.notify(result, exit)
-        self.peer.start_listening()
+        self.notify(result, exit) 
+        self.peer.start_listening() 
+        run_in_loop(self.peer.send_is_online_to_followers(), self.peer.loop)
 
     def menu_2(self):
         options = {

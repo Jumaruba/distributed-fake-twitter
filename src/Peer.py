@@ -4,9 +4,8 @@ from .consts import GARBAGE_COLLECTOR_FREQUENCY
 from .database import Database
 from .KademliaInfo import KademliaInfo
 from .Node import Node
-from .utils import get_time, parse_post
-from ntplib import NTPException
-import json
+from .utils import get_time, parse_post, run_in_loop, get_ntp_thread
+import json 
 import threading
 import asyncio
 import sys
@@ -17,6 +16,9 @@ class Peer(Node):
     def __init__(self, ip, port, bootstrap_file: str):
         super().__init__(ip, port, bootstrap_file)
         self.info = KademliaInfo(ip, port, [], [], 0)
+        self.ntp_thread = get_ntp_thread()
+        self.ntp_thread.start() 
+        
 
     # -------------------------------------------------------------------------
     # Login / Register
@@ -24,7 +26,6 @@ class Peer(Node):
 
     async def register(self, username):
         previous_user_info = await self.get_kademlia_info(username)
-        print(self.info)
         if previous_user_info is None:
             self.username = username
             await self.set_kademlia_info(self.username, self.info)
@@ -37,9 +38,11 @@ class Peer(Node):
         user_info = await self.get_kademlia_info(username)
         if user_info is None:
             return (False, "Username not found!")
+            
         self.username = username
-        self.info = user_info
         self.init_database()
+        self.info = user_info
+        await self.update_kademlia_last_post()
         await self.retrieve_missing_posts()
         return (True, "Logged with success!")
 
@@ -54,6 +57,8 @@ class Peer(Node):
 
     def logout(self):
         self.server.stop()
+        self.loop.stop()
+        self.ntp_thread.cancel()
         print("Thank you for your business!")
         exit()
 
@@ -68,14 +73,11 @@ class Peer(Node):
             post_json = json.loads(post_str)
             self.database.insert_post(post_json)
 
-            await self.send_to_followers(post_str)
-            await self.set_kademlia_info(self.username, self.info)
+            # NOTE when set fails it returns false
+            run_in_loop(self.set_kademlia_info(self.username, self.info), self.loop)
+            run_in_loop(self.send_to_followers(post_str), self.loop)
 
             return (True, "Post created!")
-        except NTPException:
-            # Recover the previous id
-            self.info.last_post_id -= 1
-            return (False, "Could not get the timestamp of the new post!")
         except Exception as e:
             return (False, e)
 
@@ -92,14 +94,11 @@ class Peer(Node):
 
             post['operation'] = 'post'
             post_str = json.dumps(post)
-            await self.send_to_followers(post_str)
-            await self.set_kademlia_info(self.username, self.info)
+            
+            run_in_loop(self.set_kademlia_info(self.username, self.info), self.loop)
+            run_in_loop(self.send_to_followers(post_str), self.loop)
 
             return (True, "Message reposted with success.")
-        except NTPException:
-            # Recover the previous id, when NTP error occurs
-            self.info.last_post_id -= 1
-            return (False, "Could not get the timestamp of the new post!")
         except Exception as e:
             return (False, e)
 
@@ -111,8 +110,8 @@ class Peer(Node):
             follower_info: KademliaInfo = await self.get_kademlia_info(follower_username)
 
             posts = self.database.get_not_expired_posts(self.username)
-
             for post in posts:
+                # TODO: remove this print
                 print("POST = ", post)
                 self.send_previous_post(
                     post, follower_info.ip,
@@ -131,15 +130,25 @@ class Peer(Node):
         )
         self.send_message(ip, port, message)
 
+
+
     async def retrieve_missing_posts(self):
+        """
+        Stablish a connection with each follower in order to request and 
+        retrieve missing posts (made while he was offline)
+        """ 
         async def sync_with_user(message, user_info):
+            """
+            Stablish a connection with a follower to request and retrieve
+            missing posts (made while he was offline)
+            """
             reader, writer = await asyncio.open_connection(user_info.ip, user_info.port)
 
             writer.write(message.encode())
             writer.write_eof()
             await writer.drain()
 
-            return await reader.read()
+            return await reader.read() 
 
         for user in self.info.following:
             message = Message.sync_posts(
@@ -152,7 +161,7 @@ class Peer(Node):
             try:
                 posts = await sync_with_user(message, user_info)
             except ConnectionRefusedError:
-                # Otherwise try with all the other followers
+                # Try with all the other followers
                 followers_username = user_info.followers
                 for follower in followers_username:
                     follower_info = await self.get_kademlia_info(follower)
@@ -164,8 +173,8 @@ class Peer(Node):
                 else:
                     print("[WARNING] No peer could provide the posts of this user")
                     return
-            print(posts)
             posts_list = json.loads(posts.decode())
+            # TODO: remove this print
             print(posts_list)
             self.database.insert_posts(posts_list)
 
@@ -174,32 +183,57 @@ class Peer(Node):
             follower_info = await self.get_kademlia_info(follower_username)
             self.send_message(follower_info.ip, follower_info.port, message)
 
+    async def resend_missing_posts(self, ip:str, port: int, last_post_id: int) -> None:
+        try: 
+            posts = self.database.get_posts_after(self.username, last_post_id)
+            for post in posts:  
+                post["operation"] = "post"
+                post_json = json.dumps(post)
+                self.send_message(ip, port, post_json) 
+        except Exception as e:
+            #TODO delete this print later 
+            print(e)
+            print("Error while resend missing posts in online protocol")
+            return 
+
+
     # -------------------------------------------------------------------------
     # Follow functions
     # -------------------------------------------------------------------------
 
     async def follow(self, username: str, message: str):
-        user_info = await self.get_kademlia_info(username)
-        try:
-            if user_info is not None:
-                await Sender.send_message(user_info.ip, user_info.port, message)
-                # The message could not be send, because the user is offline and no one has its information stored.
+        user_info = await self.get_kademlia_info(username) 
+        try: 
+            if user_info is not None: 
+                isOnline = await Sender.send_message(user_info.ip, user_info.port, message) 
+
+                # The message could not be sent, because the user is offline.
+                if not isOnline:
+                    return (False, f"You can't follow {username} right now. Lo siento...") 
+            
                 await self.add_following(username)
                 return (True, f"Following {username}")
             else:
                 return (False, f"The user {username} does not exist")
         except Exception:
-            return (False, f"You can't follow {username} right now. Lo siento...")
+            return (False, f"Ooops... Something went wrongly wrong!")
 
     async def unfollow(self, username: str, message: str):
         user_info = await self.get_kademlia_info(username)
+        try: 
+            if user_info is not None: 
+                isOnline = self.send_message(user_info.ip, user_info.port, message)
 
-        if user_info is not None:
-            self.send_message(user_info.ip, user_info.port, message)
-            await self.remove_following(username)
-            return (True, f"Unfollowing {username}")
-        else:
-            return (False, f"The user {username} does not exist")
+                 # The message could not be sent, because the user is offline.
+                if not isOnline: 
+                    return (False, f"You can't unfollow {username} right now. Lo siento...") 
+                    
+                await self.remove_following(username)
+                return (True, f"Unfollowing {username}")
+            else:
+                return (False, f"The user {username} does not exist")
+        except Exception:
+            return (False, f"Ooops... Something went wrongly wrong!")
 
     async def add_follower(self, username: str) -> None:
         self.info.followers.append(username)
@@ -217,6 +251,14 @@ class Peer(Node):
         self.info.following.remove(username)
         await self.set_kademlia_info(self.username, self.info)
 
+    async def send_is_online_to_followers(self) -> None: 
+        message = Message.online(self.username)
+        for follower_username in self.info.followers:
+            follower_info = await self.get_kademlia_info(follower_username)
+            if follower_info is not None: 
+                self.send_message(follower_info.ip, follower_info.port, message)
+
+    
     # -------------------------------------------------------------------------
     # Output functions
     # -------------------------------------------------------------------------
@@ -299,3 +341,10 @@ class Peer(Node):
         listener = Listener(self.info.ip, self.info.port, self)
         listener.daemon = True
         listener.start()
+
+    async def update_kademlia_last_post(self):
+        last_post = self.database.get_last_post(self.username)
+        if last_post == -1:
+            last_post = 0
+        self.info.last_post_id = last_post
+        await self.set_kademlia_info(self.username, self.info)

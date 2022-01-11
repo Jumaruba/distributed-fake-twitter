@@ -17,6 +17,12 @@ class Message:
         })
 
     @staticmethod
+    def sync_with_online_user(user, last_post_id):
+        return Message.new(user, "sync_with_online_user", {
+            "last_post_id": last_post_id
+        })
+
+    @staticmethod
     def follow(user):
         return Message.new(user, "follow", {})
 
@@ -35,12 +41,16 @@ class Message:
             args["timestamp"] = timestamp
         return Message.new(user, "post", args)
 
+    @staticmethod 
+    def online(username): 
+        return Message.new(username, "online")
+
     # -------------------------------------------------------------------------
     # Creation and parsing
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def new(user, operation, args):
+    def new(user, operation, args={}):
         args["user"] = user 
         args["operation"] = operation
         if "timestamp" not in args:
