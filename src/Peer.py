@@ -125,25 +125,24 @@ class Peer(Node):
         )
         self.send_message(ip, port, message)
 
+    async def sync_with_user(self, message, user_info):
+        """
+        Stablish a connection with a follower to request and retrieve
+        missing posts (made while he was offline)
+        """
+        reader, writer = await asyncio.open_connection(user_info.ip, user_info.port)
+
+        writer.write(message.encode())
+        writer.write_eof()
+        await writer.drain()
+
+        return await reader.read()
+
     async def retrieve_missing_posts(self):
         """
         Stablish a connection with each follower in order to request and 
         retrieve missing posts (made while he was offline)
         """
-
-        async def sync_with_user(message, user_info):
-            """
-            Stablish a connection with a follower to request and retrieve
-            missing posts (made while he was offline)
-            """
-            reader, writer = await asyncio.open_connection(user_info.ip, user_info.port)
-
-            writer.write(message.encode())
-            writer.write_eof()
-            await writer.drain()
-
-            return await reader.read()
-
         for user in self.info.following:
             message = Message.sync_posts(
                 self.username,
@@ -153,15 +152,14 @@ class Peer(Node):
             # Try with the owner of the messages
             user_info = await self.get_kademlia_info(user)
             try:
-                posts = await sync_with_user(message, user_info)
+                posts = await self.sync_with_user(message, user_info)
             except ConnectionRefusedError:
                 # Try with all the other followers
                 followers_username = user_info.followers
                 for follower in followers_username:
                     follower_info = await self.get_kademlia_info(follower)
                     try:
-                        # TODO Try with all?
-                        posts = await sync_with_user(message, follower_info)
+                        posts = await self.sync_with_user(message, follower_info)
                     except ConnectionRefusedError:
                         continue
                     break
@@ -200,7 +198,6 @@ class Peer(Node):
         except Exception:
             return (False, f"Ooops... Something went wrongly wrong!")
 
-
     async def unfollow(self, username: str, message: str):
         user_info = await self.get_kademlia_info(username)
         try: 
@@ -234,6 +231,14 @@ class Peer(Node):
         self.info.following.remove(username)
         await self.set_kademlia_info(self.username, self.info)
 
+    async def send_is_online_to_followers(self) -> None: 
+        message = Message.online(self.username)
+        for follower_username in self.info.followers:
+            follower_info = await self.get_kademlia_info(follower_username)
+            if follower_info is not None: 
+                self.send_message(follower_info.ip, follower_info.port, message)
+
+    
     # -------------------------------------------------------------------------
     # Output functions
     # -------------------------------------------------------------------------

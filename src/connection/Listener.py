@@ -39,6 +39,8 @@ class Listener(Thread):
                 self.handle_post(message)
             elif operation == "sync_posts":
                 await self.handle_sync_posts(message, writer)
+            elif operation == "online":
+                await self.sync_with_following(message)
             else:
                 print("Invalid operation")
 
@@ -66,7 +68,7 @@ class Listener(Thread):
 
     async def handle_sync_posts(self, message, writer) -> None:
         """
-        When the user is back online it requests the posts it losts while offline
+        When the user is back online it requests the posts it lost while offline
         """
         posts = json.dumps(self.peer.database.get_posts_after(
             message["username"],
@@ -78,6 +80,29 @@ class Listener(Thread):
         writer.write(posts.encode())
         writer.write_eof()
         await writer.drain()
+    
+
+
+    async def sync_with_following(self, message):
+        """
+        Request missing posts to a user that we follow and that just came back online
+        """
+        try: 
+            online_user = message["user"]
+            last_post_id = self.peer.database.get_last_post(online_user)
+
+            sync_message = Message.sync_posts(
+                self.peer.username,
+                last_post_id, 
+                online_user)
+
+            online_user_info = await self.peer.get_kademlia_info(online_user)
+            if online_user_info is not None:
+                posts = await self.peer.sync_with_user(sync_message, online_user_info)
+                posts_list = json.loads(posts.decode())
+                self.peer.database.insert_posts(posts_list)
+        except Exception as e: 
+            print(e)
 
     # -------------------------------------------------------------------------
     # Running listener functions

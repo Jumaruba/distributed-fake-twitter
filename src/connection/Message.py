@@ -35,12 +35,16 @@ class Message:
             args["timestamp"] = timestamp
         return Message.new(user, "post", args)
 
+    @staticmethod 
+    def online(username): 
+        return Message.new(username, "online")
+
     # -------------------------------------------------------------------------
     # Creation and parsing
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def new(user, operation, args):
+    def new(user, operation, args={}):
         args["user"] = user 
         args["operation"] = operation
         if "timestamp" not in args:
