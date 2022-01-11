@@ -39,8 +39,10 @@ class Listener(Thread):
                 self.handle_post(message)
             elif operation == "sync_posts":
                 await self.handle_sync_posts(message, writer)
+            elif operation == "sync_with_online_user":
+                await self.handle_sync_with_online_user(message)
             elif operation == "online":
-                await self.sync_with_following(message)
+                await self.handle_online(message)
             else:
                 print("Invalid operation")
 
@@ -82,8 +84,7 @@ class Listener(Thread):
         await writer.drain()
     
 
-
-    async def sync_with_following(self, message):
+    async def handle_online(self, message):
         """
         Request missing posts to a user that we follow and that just came back online
         """
@@ -91,18 +92,22 @@ class Listener(Thread):
             online_user = message["user"]
             last_post_id = self.peer.database.get_last_post(online_user)
 
-            sync_message = Message.sync_posts(
+            sync_message = Message.sync_with_online_user(
                 self.peer.username,
-                last_post_id, 
-                online_user)
+                last_post_id)
 
             online_user_info = await self.peer.get_kademlia_info(online_user)
+            # Request the missnig posts, when the owner is back online.
             if online_user_info is not None:
-                posts = await self.peer.sync_with_user(sync_message, online_user_info)
-                posts_list = json.loads(posts.decode())
-                self.peer.database.insert_posts(posts_list)
+                self.peer.send_message(online_user_info.ip, online_user_info.port, sync_message)
         except Exception as e: 
             print(e)
+
+    async def handle_sync_with_online_user(self, message) -> None:
+        last_post_id = message["last_post_id"]
+        user_info = await self.peer.get_kademlia_info(message["user"])
+
+        run_in_loop(self.peer.resend_missing_posts(user_info.ip, user_info.port, last_post_id), self.peer.loop)
 
     # -------------------------------------------------------------------------
     # Running listener functions

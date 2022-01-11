@@ -17,6 +17,12 @@ class Message:
         })
 
     @staticmethod
+    def sync_with_online_user(user, last_post_id):
+        return Message.new(user, "sync_with_online_user", {
+            "last_post_id": last_post_id
+        })
+
+    @staticmethod
     def follow(user):
         return Message.new(user, "follow", {})
 

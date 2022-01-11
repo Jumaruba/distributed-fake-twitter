@@ -60,10 +60,13 @@ class Database:
 
     def insert_post(self, post):
         post_id, user, timestamp, body = get_post_args(post)
-        self.execute("""
-            INSERT INTO posts(post_id, user, timestamp, body) 
-            VALUES(?,?,?,?)
-        """, [post_id, user, timestamp, body])
+        try:
+            self.execute("""
+                INSERT INTO posts(post_id, user, timestamp, body) 
+                VALUES(?,?,?,?)
+            """, [post_id, user, timestamp, body])
+        except sqlite3.Error as e:
+            print("Duplicate message discarded.")
 
     def insert_posts(self, posts_list):
         for post in posts_list:
