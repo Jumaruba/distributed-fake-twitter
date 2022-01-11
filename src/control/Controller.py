@@ -63,7 +63,8 @@ class Controller:
     # -------------------------------------------------------------------------
 
     def post(self):
-        message = input("What\'s happening? ")
+        print("What\'s happening?", end=" ")
+        message = input()
         if len(message) > MAX_POST_SIZE:
             return (
                 False,
@@ -86,11 +87,12 @@ class Controller:
         if status:
             message = run_in_loop(self.peer.repost(content), self.peer.loop)
             return message.result()
-            
+
         return (False, content)
 
     def follow(self):
-        username = input("Username: ")
+        print("Username:", end=" ")
+        username = input()
         if len(username) > MAX_USERNAME_SIZE or len(username) < MIN_USERNAME_SIZE:
             return (
                 False,
@@ -112,7 +114,8 @@ class Controller:
         return future.result()
 
     def unfollow(self):
-        username = input("Username: ")
+        print("Username:", end=" ")
+        username = input()
 
         if len(username) > MAX_USERNAME_SIZE or len(username) < MIN_USERNAME_SIZE:
             return (
@@ -135,7 +138,9 @@ class Controller:
     # -------------------------------------------------------------------------
 
     def register(self):
-        username = input("Type your username: ")
+        print("Type your username:", end=" ")
+        username = input()
+
         if len(username) > MAX_USERNAME_SIZE:
             return (
                 False,
@@ -151,6 +156,8 @@ class Controller:
         return future.result()
 
     def login(self):
-        username = input("Type your username: ")
+        print("Type your username:", end=" ")
+        username = input()
+
         future = run_in_loop(self.peer.login(username), self.peer.loop)
         return future.result()

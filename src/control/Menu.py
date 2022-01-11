@@ -31,7 +31,8 @@ class Menu:
         max_value = len(options)
         while True:
             try:
-                option = int(input("Choose an option: "))
+                print("Choose an option:", end=" ")
+                option = int(input())
                 if option < min_value or option > max_value:
                     print(
                         f"Your input should be in the range [{min_value}, {max_value}].")

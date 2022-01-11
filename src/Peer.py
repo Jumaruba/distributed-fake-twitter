@@ -6,9 +6,10 @@ from .KademliaInfo import KademliaInfo
 from .Node import Node
 from .utils import get_time, parse_post
 from ntplib import NTPException
-import json 
+import json
 import threading
 import asyncio
+import sys
 
 
 class Peer(Node):
@@ -48,6 +49,8 @@ class Peer(Node):
         """
         self.database = Database(self.username)
         self.start_garbage_collection()
+        sys.stderr = open(f'data/{self.username}.log', 'a+')
+        print("\n" + "-" * 80 + "\n", file=sys.stderr)
 
     def logout(self):
         self.server.stop()
@@ -61,7 +64,7 @@ class Peer(Node):
     async def post(self, message_body: str):
         try:
             post_str = Message.post(self.info.new_post_id,
-                                   self.username, message_body) 
+                                    self.username, message_body)
             post_json = json.loads(post_str)
             self.database.insert_post(post_json)
 
@@ -71,18 +74,20 @@ class Peer(Node):
             return (True, "Post created!")
         except NTPException:
             # Recover the previous id
-            self.info.last_post_id -= 1 
+            self.info.last_post_id -= 1
             return (False, "Could not get the timestamp of the new post!")
         except Exception as e:
             return (False, e)
 
-    async def repost(self, post_id: int):  
-        try:   
+    async def repost(self, post_id: int):
+        try:
             # Update timestamp and id of the old post
-            self.database.update_post(post_id, self.username, get_time(), self.info.new_post_id) 
-            post = self.database.get_post(self.username, self.info.last_post_id)
+            self.database.update_post(
+                post_id, self.username, get_time(), self.info.new_post_id)
+            post = self.database.get_post(
+                self.username, self.info.last_post_id)
 
-            if post is None: 
+            if post is None:
                 return (False, "Error while reposting.")
 
             post['operation'] = 'post'
@@ -169,24 +174,22 @@ class Peer(Node):
             follower_info = await self.get_kademlia_info(follower_username)
             self.send_message(follower_info.ip, follower_info.port, message)
 
-
     # -------------------------------------------------------------------------
     # Follow functions
     # -------------------------------------------------------------------------
 
     async def follow(self, username: str, message: str):
-        user_info = await self.get_kademlia_info(username) 
-        try: 
-            if user_info is not None: 
-                await Sender.send_message(user_info.ip, user_info.port, message)  
+        user_info = await self.get_kademlia_info(username)
+        try:
+            if user_info is not None:
+                await Sender.send_message(user_info.ip, user_info.port, message)
                 # The message could not be send, because the user is offline and no one has its information stored.
                 await self.add_following(username)
                 return (True, f"Following {username}")
             else:
-                return (False, f"The user {username} does not exist")   
+                return (False, f"The user {username} does not exist")
         except Exception:
             return (False, f"You can't follow {username} right now. Lo siento...")
-
 
     async def unfollow(self, username: str, message: str):
         user_info = await self.get_kademlia_info(username)
@@ -218,12 +221,16 @@ class Peer(Node):
     # Output functions
     # -------------------------------------------------------------------------
 
+    def prompt(self):
+        print(":", end=" ")
+        input()
+
     def show_followers(self):
         builder = "== Followers ==\n"
         for i, follower in enumerate(self.info.followers):
             builder += f"{i} - {follower}\n"
         print(builder)
-        input(":")
+        self.prompt()
         return (True, None)
 
     def show_following(self):
@@ -231,7 +238,7 @@ class Peer(Node):
         for i, following in enumerate(self.info.following):
             builder += f"{i} - {following}\n"
         print(builder)
-        input(":")
+        self.prompt()
         return (True, None)
 
     def show_timeline(self):
@@ -242,33 +249,35 @@ class Peer(Node):
             print("[" + post_hour + "]", end=" ")
             print("<" + post_creator + ">", end=" ")
             print(post_content)
-            
-        input(":")
+
+        self.prompt()
         return (True, None)
 
     def select_post(self):
-        posts = self.database.get_expired_posts(self.username)   
+        posts = self.database.get_expired_posts(self.username)
         posts = map(parse_post, posts)
-    
+
         for post_id, post_creator, _, post_hour, post_content in posts:
-            print("#" + str(post_id), end= " ")
+            print("#" + str(post_id), end=" ")
             print("[" + post_hour + "]", end=" ")
             print("<" + post_creator + ">", end=" ")
             print(post_content)
 
         while True:
-            post_id = input("Which post would you like to reshare (id or q to exit)?:")
-            if post_id == "q": 
-                return (True, None)  
+            print("Which post would you like to reshare (id or q to exit)?\n:", end=" ")
+            post_id = input()
+            if post_id == "q":
+                return (True, None)
             try:
                 option = int(post_id)
-                has_post = self.database.get_post(self.username, option) is not None
+                has_post = self.database.get_post(
+                    self.username, option) is not None
                 if not has_post:
                     print(f"Post {option} does not exists. Try again...")
                     continue
                 return (True, option)
             except ValueError:
-                print(f"Please select a valid option.") 
+                print(f"Please select a valid option.")
 
     # -------------------------------------------------------------------------
     # Garbage Collector

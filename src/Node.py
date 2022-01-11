@@ -54,7 +54,7 @@ class Node:
     async def set_kademlia_info(self, key: str, kademlia_info) -> None:
         """
         Set's a value for the key self.username in the network.
-        The value contains the peer properties. 
+        The value contains the peer properties.
         """
         await self.server.set(key, kademlia_info.serialize)
 
