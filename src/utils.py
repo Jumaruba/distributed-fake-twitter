@@ -15,8 +15,8 @@ def get_time():
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-def start_ntp():
-    threading.Timer(NTP_FREQ, sync_time).start()
+def get_ntp_thread():
+    return threading.Timer(NTP_FREQ, sync_time)
 
 
 def sync_time():

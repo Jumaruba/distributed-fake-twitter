@@ -4,7 +4,6 @@ import sys
 
 from .control import Controller
 from .Peer import Peer
-from .utils import start_ntp
 
 def check_args():
     # Function to check if the arguments are correct
@@ -34,7 +33,6 @@ def main(ip: str, port: int, bootstrap_file: str):
     # NOTE The listening and bootstrapping are running forever.
     # Putting this before the operation, we are initializing the kademlia server.
     Thread(target=peer.loop.run_forever, daemon=True).start()
-    start_ntp()
 
     controller = Controller(peer)
     controller.start()

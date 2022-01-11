@@ -71,6 +71,10 @@ class Listener(Thread):
         posts = json.dumps(self.peer.database.get_posts_after(
             message["username"],
             message["last_post_id"]))
+            
+        if message["username"] == self.peer.username:
+            await self.peer.update_kademlia_last_post()
+
         writer.write(posts.encode())
         writer.write_eof()
         await writer.drain()
