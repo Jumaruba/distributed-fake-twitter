@@ -38,10 +38,10 @@ class Controller:
         options = {
             "Register": self.register,
             "Login": self.login,
-            "Exit": exit
+            "Exit": self.exit_program
         }
         result = self.handle("Welcome", options)
-        self.notify(result, exit) 
+        self.notify(result, self.exit_program) 
         self.peer.start_listening() 
         run_in_loop(self.peer.send_is_online_to_followers(), self.peer.loop)
 
@@ -162,3 +162,10 @@ class Controller:
 
         future = run_in_loop(self.peer.login(username), self.peer.loop)
         return future.result()
+
+
+    def exit_program(self):
+        self.peer.ntp_thread.cancel() 
+        self.peer.loop.stop() 
+        # peer.server.stop() 
+        exit()

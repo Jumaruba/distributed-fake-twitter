@@ -111,8 +111,6 @@ class Peer(Node):
 
             posts = self.database.get_not_expired_posts(self.username)
             for post in posts:
-                # TODO: remove this print
-                print("POST = ", post)
                 self.send_previous_post(
                     post, follower_info.ip,
                     follower_info.port
@@ -174,8 +172,6 @@ class Peer(Node):
                     print("[WARNING] No peer could provide the posts of this user")
                     return
             posts_list = json.loads(posts.decode())
-            # TODO: remove this print
-            print(posts_list)
             self.database.insert_posts(posts_list)
 
     async def send_to_followers(self, message):
@@ -191,8 +187,6 @@ class Peer(Node):
                 post_json = json.dumps(post)
                 self.send_message(ip, port, post_json) 
         except Exception as e:
-            #TODO delete this print later 
-            print(e)
             print("Error while resend missing posts in online protocol")
             return 
 
@@ -222,7 +216,7 @@ class Peer(Node):
         user_info = await self.get_kademlia_info(username)
         try: 
             if user_info is not None: 
-                isOnline = self.send_message(user_info.ip, user_info.port, message)
+                isOnline = await Sender.send_message(user_info.ip, user_info.port, message)
 
                  # The message could not be sent, because the user is offline.
                 if not isOnline: 
@@ -232,7 +226,8 @@ class Peer(Node):
                 return (True, f"Unfollowing {username}")
             else:
                 return (False, f"The user {username} does not exist")
-        except Exception:
+        except Exception as e:
+            print(e)
             return (False, f"Ooops... Something went wrongly wrong!")
 
     async def add_follower(self, username: str) -> None:

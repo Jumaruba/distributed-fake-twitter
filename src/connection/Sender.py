@@ -12,6 +12,4 @@ class Sender:
             await writer.drain()
             return True
         except Exception as e:
-            # TODO: Delete this print in the end
-            # print(f"[WARNING] Couldn't connect to follower")
             return False

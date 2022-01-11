@@ -72,3 +72,4 @@ def parse_post(post):
     post_day = post_time[0]
     post_hour = post_time[1]
     return post_id, post_creator, post_day, post_hour, post_content
+
