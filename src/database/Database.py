@@ -173,12 +173,11 @@ class Database:
         Get post with a specific id
         """
 
-        post =  self.fetch_one("""
+        post = self.fetch_one("""
             SELECT post_id, user, timestamp, body
             FROM posts
             WHERE post_id = ? AND user = ?
         """, [post_id, username])
-        print(f"POST :: {post}")
 
         if post is None:
             return None 
