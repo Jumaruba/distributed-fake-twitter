@@ -7,24 +7,28 @@ from datetime import date, datetime
 import threading
 
 offset = 0
-ntp_thread = None
 
 def run_in_loop(function, loop):
     return asyncio.run_coroutine_threadsafe(function, loop)
 
 
 def get_time():
+    global offset
+    #print("OFFSET:", offset)
     time_now = time() + offset
     # print(datetime.fromtimestamp(time_now).strftime('%Y-%m-%d %H:%M:%S'))
     # print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     #return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return datetime.fromtimestamp(time_now).strftime('%Y-%m-%d %H:%M:%S')
 
-
-def get_ntp_thread():
-    return threading.Timer(NTP_FREQ, sync_time)
+# def start_ntp_thread():
+#     global ntp_thread
+#     sync_time()
+#     ntp_thread = threading.Timer(NTP_FREQ, start_ntp_thread)
+#     ntp_thread.start()
 
 def sync_time():
+    global offset
     ntpclient = ntplib.NTPClient()
     for _ in range(NTP_TRIES):
         try:

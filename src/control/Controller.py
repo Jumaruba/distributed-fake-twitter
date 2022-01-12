@@ -165,7 +165,7 @@ class Controller:
 
 
     def exit_program(self):
-        self.peer.ntp_thread.cancel() 
+        self.peer.stop_ntp.set()
         self.peer.loop.stop() 
         # peer.server.stop() 
         exit()

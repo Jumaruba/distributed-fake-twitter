@@ -1,10 +1,12 @@
 import json
+
+from src.EventThread import EventThread
 from .connection import Listener, Message, Sender
 from .consts import GARBAGE_COLLECTOR_FREQUENCY
 from .database import Database
 from .KademliaInfo import KademliaInfo
 from .Node import Node
-from .utils import get_time, parse_post, run_in_loop, get_ntp_thread
+from .utils import get_time, parse_post, run_in_loop
 import json 
 import threading
 import asyncio
@@ -15,10 +17,10 @@ class Peer(Node):
     def __init__(self, ip, port, bootstrap_file: str):
         super().__init__(ip, port, bootstrap_file)
         self.info = KademliaInfo(ip, port, [], [], 0)
-        self.ntp_thread = get_ntp_thread()
-        self.ntp_thread.start() 
+        self.stop_ntp = threading.Event()
+        self.ntp_thread = EventThread(self.stop_ntp)
+        self.ntp_thread.start()
         
-
     # -------------------------------------------------------------------------
     # Login / Register
     # -------------------------------------------------------------------------
@@ -57,7 +59,7 @@ class Peer(Node):
     def logout(self):
         self.server.stop()
         self.loop.stop()
-        self.ntp_thread.cancel()
+        self.stop_ntp.set()
         print("Thank you for your business!")
         exit()
 
