@@ -2,9 +2,7 @@ import asyncio
 from time import ctime, strftime, localtime, time
 import ntplib
 from .consts import NTP_SERVER, NTP_FREQ, NTP_TRIES
-import os
 from datetime import date, datetime
-import threading
 
 offset = 0
 
@@ -14,18 +12,8 @@ def run_in_loop(function, loop):
 
 def get_time():
     global offset
-    #print("OFFSET:", offset)
     time_now = time() + offset
-    # print(datetime.fromtimestamp(time_now).strftime('%Y-%m-%d %H:%M:%S'))
-    # print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    #return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     return datetime.fromtimestamp(time_now).strftime('%Y-%m-%d %H:%M:%S')
-
-# def start_ntp_thread():
-#     global ntp_thread
-#     sync_time()
-#     ntp_thread = threading.Timer(NTP_FREQ, start_ntp_thread)
-#     ntp_thread.start()
 
 def sync_time():
     global offset
@@ -33,11 +21,8 @@ def sync_time():
     for _ in range(NTP_TRIES):
         try:
             response = ntpclient.request(NTP_SERVER)
-            #ntp_time = strftime('%m%d%H%M%Y.%S', localtime(response.tx_time))
-            #os.system('date ' + ntp_time)
-            #os.system('sudo date ' + ntp_time + ' > /dev/null')
             offset = response.offset
-            #debug_ntp(response)            
+            # debug_ntp(response) 
             return 
         except ntplib.NTPException:
             # print("NTP try failed")

@@ -9,6 +9,4 @@ class EventThread(Thread):
 
     def run(self):
         while not self.stop.wait(NTP_FREQ):
-            print('here')
-            global offset
             sync_time()
