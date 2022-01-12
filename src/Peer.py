@@ -10,7 +10,6 @@ import threading
 import asyncio
 import sys
 
-
 class Peer(Node):
 
     def __init__(self, ip, port, bootstrap_file: str):
