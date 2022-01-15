@@ -31,7 +31,7 @@ $ pipenv shell
 
 The repository already has default configurations in the [config folder](config/), so it can be run as follows.
 
-To create a bootstrap peer:
+Start by creating a bootstrap peer:
 
 ```console
 $ python -m src.bootstrap
