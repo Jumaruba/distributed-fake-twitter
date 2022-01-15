@@ -11,11 +11,20 @@ Group members:
 
 ## Instalation
 
-To install the program the only needed step is to clone the repository:
+To install the program the only needed steps are to clone the repository and install its dependencies.
+
+Assumming you have [pipenv](https://pypi.org/project/pipenv/) installed, just run the following commands:
 
 ```console
 $ git clone https://git.fe.up.pt/sdle/2021/t3/g14/proj2
 $ cd proj2
+$ pipenv install
+```
+
+The following command is required to be run in every shell that will execute one of the execution commands:
+
+```console
+$ pipenv shell
 ```
 
 ## Execution
