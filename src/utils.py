@@ -1,31 +1,28 @@
 import asyncio
-from time import strftime, localtime
+from time import ctime, strftime, localtime, time
 import ntplib
 from .consts import NTP_SERVER, NTP_FREQ, NTP_TRIES
-import os
-from datetime import datetime
-import threading
+from datetime import date, datetime
 
+offset = 0
 
 def run_in_loop(function, loop):
     return asyncio.run_coroutine_threadsafe(function, loop)
 
 
 def get_time():
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-
-def get_ntp_thread():
-    return threading.Timer(NTP_FREQ, sync_time)
-
+    global offset
+    time_now = time() + offset
+    return datetime.fromtimestamp(time_now).strftime('%Y-%m-%d %H:%M:%S')
 
 def sync_time():
+    global offset
     ntpclient = ntplib.NTPClient()
     for _ in range(NTP_TRIES):
         try:
             response = ntpclient.request(NTP_SERVER)
-            ntp_time = strftime('%m%d%H%M%Y.%S', localtime(response.tx_time))
-            os.system('date', ntp_time)
+            offset = response.offset
+            # debug_ntp(response) 
             return 
         except ntplib.NTPException:
             # print("NTP try failed")
@@ -44,6 +41,20 @@ def read_ips(file_path):
 
     return list(map(parse_line, lines))
 
+def debug_ntp(response):
+    print("delay = ", response.delay)
+    print("dest_time = ", response.dest_time)
+    print("tx_time = ", response.dest_time)
+    print("offset = ", response.offset)
+    print("delay = ", response.delay)   
+    print("dest_time + offset = ", response.dest_time + response.offset)
+    print("tx_time + delay/2 = ", response.tx_time + response.delay/2)
+
+    offset = response.offset
+    time_t = time()
+    print("OLD", time_t)
+    print("CORRECT", time_t + offset)
+    
 # -------------------------------------------------------------------------
 # Post utils
 # -------------------------------------------------------------------------
