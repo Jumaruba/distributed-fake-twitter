@@ -51,7 +51,8 @@ class Database:
             post_id INTEGER NOT NULL,
             user VARCHAR(20) NOT NULL,
             timestamp DATETIME NOT NULL,
-            body VARCHAR(50) NOT NULL 
+            body VARCHAR(50) NOT NULL,
+            UNIQUE(post_id,user)
         );""")
 
     # -------------------------------------------------------------------------
@@ -95,6 +96,12 @@ class Database:
             AND timestamp < datetime(?, ?)
         """, [username, timestamp_now, f"-{POST_LIFETIME} seconds"])
 
+    def delete_all(self, username):
+        self.execute("""
+            DELETE FROM posts 
+            WHERE user == ?
+        """, [username])
+        
     # -------------------------------------------------------------------------
     # Get functions
     # ------------------------------------------------------------------------- 

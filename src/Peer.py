@@ -245,6 +245,7 @@ class Peer(Node):
 
     async def remove_following(self, username: str) -> None:
         self.info.following.remove(username)
+        self.database.delete_all(username)
         await self.set_kademlia_info(self.username, self.info)
 
     async def send_is_online_to_followers(self) -> None: 
