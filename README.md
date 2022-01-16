@@ -45,3 +45,8 @@ $ python -m src 127.0.0.1 3000
 
 With _127.0.0.1_ as IP and _3000_ as port.
 
+To clean the temporary files created after the executions, just run:
+
+```console
+$ make clean
+```
