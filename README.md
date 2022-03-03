@@ -2,7 +2,9 @@
 
 SDLE Project for group T3G14.
 
-Group members:
+**Final grade**: 18.1
+
+**Group members**:
 
 1. Alexandre Abreu ([up201800168@up.pt](mailto:up201800168@up.pt))
 2. Diana Freitas ([up201806230@up.pt](mailto:up201806230@up.pt))
